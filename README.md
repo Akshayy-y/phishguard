@@ -100,18 +100,22 @@ Fork the repository
 Create a new branch
 Make changes
 Submit a pull request
+
 📬 Support
 
 If you have any questions or suggestions:
 
 Open an issue in this repository
 Contact via LinkedIn
+
 👨‍💻 Maintainer
 
 Akshay Suresh
 
-🔗 LinkedIn: https://www.linkedin.com/in/akshay-suresh-a04202283
+🔗 LinkedIn: https://www.linkedin.com/in/akshay-suresh-a04202283|
+
 💻 GitHub: https://github.com/Akshayy-y
+
 ⭐ Show Your Support
 
 If you like this project, consider giving it a ⭐ on GitHub!
