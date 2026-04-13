@@ -1,105 +1,239 @@
-🛡️ PhishGuard — Phishing Email Detection System
+# 🛡 PhishGuard — Phishing Email Detection System
 
-📌 What This Project Does
+![Python](https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python)
+![Django](https://img.shields.io/badge/Django-5.2-green?style=flat-square&logo=django)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange?style=flat-square&logo=scikit-learn)
+![License](https://img.shields.io/badge/License-MIT-lightgrey?style=flat-square)
 
-PhishGuard is a full-stack cybersecurity web application that detects phishing emails using machine learning and natural language processing.
+A full-stack web application that detects phishing emails using machine learning. Built with Django, it provides a complete email-like interface where every outgoing message is scanned in real time by a trained Logistic Regression pipeline. Senders of phishing emails are automatically blocked, and detailed sentiment analysis is displayed alongside the AI verdict when reading messages.
 
-It simulates a real-world email system where messages are analyzed in real time and classified as safe or phishing, helping users identify malicious content and understand phishing behavior.
+---
 
-Why This Project Is Useful
+## ✨ Features
 
-Phishing attacks are one of the most common cybersecurity threats. This project demonstrates how to:
+- 🤖 **Real-time AI scanning** — every sent email is classified as Safe or Phishing using a trained ML model
+- 🚫 **Auto-block** — phishing senders are automatically added to the user's block list on inbox load
+- 📧 **Full email workflow** — compose, inbox, outbox, drafts, read, delete
+- 📊 **Sentiment analysis** — VADER NLP scores displayed alongside AI verdict on email read page
+- 👤 **User management** — register, login, profile view/update, profile photo upload
+- 🛡 **Admin panel** — manage users, review feedbacks, control block lists, view live stats
+- 💬 **Feedback system** — users can submit feedback visible to admins
+- 🎨 **Cyberpunk UI** — fully custom dark-themed responsive design across all 18 pages
 
-Detect phishing attempts using machine learning
-Analyze email content for suspicious patterns
-Apply defensive security mechanisms like user blocking
-Combine backend systems, ML, and UI for real-world security applications
+---
 
-Key Features
-Real-time phishing detection (ML model)
-Sentiment analysis using VADER NLP
-Full email workflow (compose, inbox, drafts, outbox)
-User authentication & session management
-Automatic sender blocking for phishing emails
-Admin dashboard for monitoring users and threats
+## 🖥 Tech Stack
 
-Tech Stack
-Layer	Technology
-Backend	Django (Python)
-Machine Learning	Logistic Regression (scikit-learn)
-NLP	VADER Sentiment Analysis
-Database	SQLite
-Frontend	HTML, CSS, JavaScript
-Libraries	pandas, numpy
+| Layer | Technology |
+|---|---|
+| Backend | Django 5.2, Python 3.11 |
+| Database | SQLite (dev) |
+| ML Model | Logistic Regression — scikit-learn 0.23.2 |
+| NLP | VADER Sentiment Analysis |
+| Data | pandas, numpy |
+| Frontend | HTML5, CSS3, Vanilla JS |
+| Charts | Chart.js |
+| Fonts | Orbitron, Rajdhani, Share Tech Mono (Google Fonts) |
+| Auth | Django AbstractUser + session-based |
 
-Getting Started
-Prerequisites
-Python 3.11+
-Git
-pip
+---
 
-🔧 Installation
+## 🗂 Project Structure
+
+```
+mailproject/
+├── mailproject/
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── mailapp/
+│   ├── models.py          # All database models
+│   ├── views.py           # All view functions
+│   └── migrations/
+├── templates/
+│   ├── USER/              # User-facing pages
+│   │   ├── userHome.html
+│   │   ├── inbox.html
+│   │   ├── compose.html
+│   │   ├── readMail.html
+│   │   ├── drafts.html
+│   │   ├── readDrafts.html
+│   │   ├── outBox.html
+│   │   ├── profile.html
+│   │   ├── updateProfile.html
+│   │   ├── addFeedback.html
+│   │   └── blockedUsers.html
+│   ├── ADMIN/             # Admin panel pages
+│   │   ├── adminHome.html
+│   │   ├── viewUsers.html
+│   │   ├── viewFeedbacks.html
+│   │   └── blockedUsers.html
+│   ├── index.html         # Landing page
+│   ├── login.html
+│   └── register.html
+├── static/
+│   ├── css/style.css
+│   ├── js/
+│   ├── images/
+│   └── plugins/
+├── Naive_model.pkl        # Trained ML pipeline (Logistic Regression)
+├── phishing_site_urls.csv # URL dataset for URL-matching check
+└── manage.py
+```
+
+---
+
+## 🗃 Database Models
+
+| Model | Purpose |
+|---|---|
+| `Login` | Extends AbstractUser — adds `userType` ('Admin'/'User') and `viewPass` |
+| `UserRegistration` | Profile data: name, email, phone, DOB, gender, address, image |
+| `Message` | Sent emails with `prediction_result` field ('0'=safe, '1'=phishing) |
+| `Drafts` | Saved drafts — identical to Message, deleted on send |
+| `Feedback` | User feedback submissions linked to UserRegistration |
+| `BlockList` | Records blocking_user_id ↔ blocked_user_id pairs with status |
+
+---
+
+## 🤖 ML Pipeline
+
+The model is a **scikit-learn Pipeline** combining:
+
+1. `CountVectorizer` — tokenises URL text using `RegexpTokenizer(r'[A-Za-z]+')` with English stop words
+2. `LogisticRegression` — binary classifier trained on labelled URLs
+
+**Dataset:** [Kaggle — Phishing Site URLs](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls) — 549,346 labelled URLs (`bad` / `good`)
+
+**Accuracy:** ~96% on test split (URL data)
+
+> ⚠️ **Note:** Despite being named `Naive_model.pkl`, the saved model is **Logistic Regression**, not Naive Bayes. Naive Bayes was evaluated (~94%) but not saved.
+
+> ⚠️ **Known limitation:** The model was trained on URL strings but is applied to email body text at runtime. This domain mismatch reduces real-world accuracy. Retraining on a phishing email dataset (SpamAssassin, CSDMC2010) is recommended for production use.
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+- Python 3.11+
+- pip
+- Git
+
+### Steps
+
+```bash
+# 1. Clone the repository
 git clone https://github.com/yourusername/phishguard.git
 cd phishguard
-pip install -r requirements.txt
-🗄️ Database Setup
+
+# 2. Install dependencies
+pip install django vaderSentiment pandas scikit-learn==0.23.2 pillow
+
+# 3. Run migrations
 python manage.py makemigrations
 python manage.py migrate
 
-▶️ Run the Application
+# 4. Place required files in the project root
+#    - Naive_model.pkl        (trained pipeline)
+#    - phishing_site_urls.csv (URL dataset)
+
+# 5. Start the development server
 python manage.py runserver
+```
 
-👉 Open in browser:
+Visit `http://127.0.0.1:8000`
 
-http://127.0.0.1:8000
-👤 Usage Example
-Register a new user
-Login to the system
-Compose an email
-System analyzes content → flags phishing/safe
-View inbox with detection results
+> ⚠️ Pin `scikit-learn==0.23.2` to match the pickle version. Using a different version causes `InconsistentVersionWarning` and may break inference.
 
-🧠 How It Works
-Email content is processed using a trained ML pipeline
-Text is tokenized and vectorized
-Logistic Regression model classifies content
-VADER NLP provides sentiment analysis
-Results are displayed in UI with visual indicators
+### Create an Admin User
 
+```bash
+python manage.py shell
+>>> from mailapp.models import Login
+>>> u = Login.objects.get(username='your@email.com')
+>>> u.userType = 'Admin'
+>>> u.save()
+```
 
-<img width="1351" height="683" alt="Screenshot 2026-04-07 113807" src="https://github.com/user-attachments/assets/b329126b-cd44-42f5-92c6-d072d2af240d" />
-<img width="2" height="1" alt="Screenshot 2026-04-07 113750" src="https://github.com/user-attachments/assets/8c192a09-5d4c-49fa-afd0-c6054a723519" />
-<img width="1366" height="768" alt="Screenshot 2026-04-07 113726" src="https://github.com/user-attachments/assets/00ee5d4f-90ee-4b65-8939-442eebee6526" />
-<img width="1352" height="682" alt="Screenshot 2026-04-07 113617" src="https://github.com/user-attachments/assets/504d9463-8116-4739-803e-a082d072e795" />
-<img width="1363" height="680" alt="Screenshot 2026-04-07 113446" src="https://github.com/user-attachments/assets/5d095b05-0bd3-4b04-9fce-ad3284bc2de9" />
-<img width="1365" height="679" alt="Screenshot 2026-04-07 113222" src="https://github.com/user-attachments/assets/7ee21d8f-07ee-4e53-9a37-1d6ab3edd6ae" />
-<img width="1344" height="665" alt="Screenshot 2026-04-07 113130" src="https://github.com/user-attachments/assets/028b8cd4-e546-46bc-8377-b9bf96608e79" />
-<img width="1350" height="686" alt="Screenshot 2026-04-07 112956" src="https://github.com/user-attachments/assets/5575536f-7d0f-40f4-b317-00c8062748d0" />
+---
 
-⚠️ Limitations
-Model trained on URL dataset (not email dataset)
+## 🔗 URL Routes
 
-SQLite used (not production-ready)
+| URL | Description |
+|---|---|
+| `/` | Landing page |
+| `/login` | Sign in |
+| `/register` | Create account |
+| `/userHome` | User dashboard |
+| `/inbox` | Email inbox with AI badges |
+| `/compose` | Compose + ML scan on send |
+| `/readMail?id=N` | Read email + threat analysis |
+| `/drafts` | Saved drafts |
+| `/outBox` | Sent emails |
+| `/viewProfile` | View profile |
+| `/updateProfile` | Edit profile |
+| `/addFeedback` | Submit feedback |
+| `/blockedUsers` | Manage blocked senders |
+| `/adminHome` | Admin dashboard |
+| `/viewUsers` | Admin: manage users |
+| `/viewFeedbacks` | Admin: review feedback |
+| `/adminBlockedUsers` | Admin: manage block list |
 
-No login rate limiting (brute-force risk)
+---
 
-Plain-text password field present (should be removed)
+## 🎨 UI Design
 
-Future Improvements
-Train model on phishing email datasets.
-Add email verification system.
-Implement rate limiting & 2FA.
-Upgrade database to PostgreSQL.
-Integrate real email APIs (Gmail/Outlook).
+All pages use a consistent **cyberpunk dark theme**. Each section has its own accent colour:
 
-🤝 Contributing
+| Section | Accent |
+|---|---|
+| General / Inbox | Cyan `#00d4ff` |
+| Phishing / Danger | Red `#ff3860` |
+| Safe / Feedback | Green `#39ff14` |
+| Drafts / Warnings | Orange `#ff8c00` |
+| Profile / Outbox | Purple `#a855f7` |
 
-Contributions are welcome!
+**Fonts:** Orbitron (headings) · Rajdhani (body) · Share Tech Mono (labels/code)
 
-Fork the repository
-Create a new branch
-Make changes
-Submit a pull request
+---
+
+## ⚠️ Security Notes
+
+- CSRF protection enabled on all forms
+- All user views protected with session guard — redirects to `/login` if no session
+- Passwords hashed via Django's PBKDF2 + SHA256
+- `viewPass` stores plain text for admin display — **remove before production**
+- Use PostgreSQL and set `DEBUG=False` for any public deployment
+
+---
+
+## 📁 Dependencies
+
+```
+django>=5.0
+vaderSentiment
+pandas
+numpy
+scikit-learn==0.23.2
+Pillow
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 🙏 Acknowledgements
+
+- [Kaggle — Phishing Site URLs Dataset](https://www.kaggle.com/datasets/taruntiwarihp/phishing-site-urls)
+- [VADER Sentiment Analysis](https://github.com/cjhutto/vaderSentiment) — Hutto & Gilbert (2014)
+- [scikit-learn](https://scikit-learn.org/) — Pedregosa et al., JMLR 2011
+- [Chart.js](https://www.chartjs.org/) — MIT License
+- [Google Fonts](https://fonts.google.com/) — Orbitron, Rajdhani, Share Tech Mono
 
 📬 Support
 
