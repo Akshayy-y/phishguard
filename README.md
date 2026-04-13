@@ -78,15 +78,20 @@ Results are displayed in UI with visual indicators
 
 ⚠️ Limitations
 Model trained on URL dataset (not email dataset)
+
 SQLite used (not production-ready)
+
 No login rate limiting (brute-force risk)
+
 Plain-text password field present (should be removed)
-🚀 Future Improvements
-Train model on phishing email datasets
-Add email verification system
-Implement rate limiting & 2FA
-Upgrade database to PostgreSQL
-Integrate real email APIs (Gmail/Outlook)
+
+Future Improvements
+Train model on phishing email datasets.
+Add email verification system.
+Implement rate limiting & 2FA.
+Upgrade database to PostgreSQL.
+Integrate real email APIs (Gmail/Outlook).
+
 🤝 Contributing
 
 Contributions are welcome!
