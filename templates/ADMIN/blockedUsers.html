@@ -1,0 +1,1047 @@
+{% load static %} {% block header %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PhishGuard — Blocked Users</title>
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="{% static 'images/favicon.png' %}"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-deep: #050a0f;
+        --bg-panel: #08111a;
+        --bg-card: #0c1823;
+        --bg-hover: #102030;
+        --border: #0f3a52;
+        --border-bright: #1a6a8a;
+        --accent: #00d4ff;
+        --accent2: #ff3860;
+        --accent3: #39ff14;
+        --text-primary: #cde8f5;
+        --text-muted: #4a7a99;
+        --text-dim: #2a5a77;
+        --glow: 0 0 20px rgba(0, 212, 255, 0.3);
+        --glow-red: 0 0 20px rgba(255, 56, 96, 0.4);
+        --sidebar-w: 240px;
+        --header-h: 60px;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Rajdhani", sans-serif;
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 9999;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.03) 2px,
+          rgba(0, 0, 0, 0.03) 4px
+        );
+      }
+
+      #preloader {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: var(--bg-deep);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 16px;
+        transition: opacity 0.5s ease;
+      }
+      #preloader.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loader-ring {
+        width: 60px;
+        height: 60px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent2);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .loader-text {
+        font-family: "Share Tech Mono", monospace;
+        color: var(--accent2);
+        font-size: 11px;
+        letter-spacing: 3px;
+        animation: blink 1s step-end infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      #main-wrapper {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        width: var(--sidebar-w);
+        min-height: 100vh;
+        background: var(--bg-panel);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 100;
+        transition: transform 0.3s ease;
+      }
+      .sidebar.collapsed {
+        transform: translateX(calc(-1 * var(--sidebar-w)));
+      }
+      .sidebar-logo {
+        padding: 20px 20px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, var(--accent), #0070ff);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+        box-shadow: var(--glow);
+      }
+      .logo-text {
+        font-family: "Orbitron", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 1px;
+        line-height: 1.2;
+      }
+      .logo-sub {
+        font-size: 9px;
+        color: var(--text-muted);
+        letter-spacing: 2px;
+        font-family: "Share Tech Mono", monospace;
+      }
+      .nav-label {
+        padding: 20px 20px 8px;
+        font-size: 10px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        font-family: "Share Tech Mono", monospace;
+      }
+      .nav-item {
+        position: relative;
+      }
+      .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 20px;
+        color: var(--text-muted);
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+      }
+      .nav-link:hover,
+      .nav-link.active {
+        color: var(--accent);
+        background: rgba(0, 212, 255, 0.06);
+      }
+      .nav-link:hover::before,
+      .nav-link.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--accent);
+        box-shadow: var(--glow);
+      }
+      .nav-icon {
+        width: 18px;
+        text-align: center;
+        font-size: 16px;
+      }
+      .nav-arrow {
+        margin-left: auto;
+        transition: transform 0.2s;
+        font-size: 10px;
+      }
+      .nav-arrow.open {
+        transform: rotate(90deg);
+      }
+      .nav-sub {
+        display: none;
+        background: rgba(0, 0, 0, 0.2);
+      }
+      .nav-sub.open {
+        display: block;
+      }
+      .nav-sub a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 20px 9px 50px;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+      .nav-sub a::before {
+        content: "›";
+        color: var(--text-dim);
+      }
+      .nav-sub a:hover {
+        color: var(--accent);
+        padding-left: 54px;
+      }
+      .sidebar-footer {
+        margin-top: auto;
+        padding: 16px 20px;
+        border-top: 1px solid var(--border);
+      }
+      .sys-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "Share Tech Mono", monospace;
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent3);
+        box-shadow: 0 0 6px var(--accent3);
+        animation: pulse 2s ease infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      .main-content {
+        margin-left: var(--sidebar-w);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        transition: margin-left 0.3s ease;
+      }
+      .header {
+        height: var(--header-h);
+        background: var(--bg-panel);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .hamburger {
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        transition: all 0.2s;
+      }
+      .hamburger:hover {
+        border-color: var(--accent);
+        box-shadow: var(--glow);
+      }
+      .hamburger span {
+        width: 14px;
+        height: 1.5px;
+        background: var(--text-muted);
+      }
+      .hamburger:hover span {
+        background: var(--accent);
+      }
+      .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .breadcrumb span {
+        color: var(--accent);
+        font-family: "Share Tech Mono", monospace;
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        padding: 4px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        transition: all 0.2s;
+      }
+      .user-menu:hover {
+        border-color: var(--accent);
+        box-shadow: var(--glow);
+      }
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), #0070ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: #000;
+      }
+      .user-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .user-role {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-family: "Share Tech Mono", monospace;
+      }
+      .dropdown {
+        position: relative;
+      }
+      .dropdown-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 8px);
+        background: var(--bg-card);
+        border: 1px solid var(--border-bright);
+        border-radius: 10px;
+        min-width: 160px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-8px);
+        transition: all 0.2s;
+        z-index: 200;
+      }
+      .dropdown.open .dropdown-menu {
+        opacity: 1;
+        pointer-events: all;
+        transform: translateY(0);
+      }
+      .dd-item {
+        padding: 12px 16px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-radius: 10px;
+      }
+      .dd-item:hover {
+        background: var(--bg-hover);
+      }
+      .dd-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      /* PAGE */
+      .page-body {
+        flex: 1;
+        padding: 28px;
+        background:
+          radial-gradient(
+            ellipse at 20% 10%,
+            rgba(255, 56, 96, 0.03) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 80% 80%,
+            rgba(0, 212, 255, 0.03) 0%,
+            transparent 50%
+          ),
+          var(--bg-deep);
+      }
+      .page-title {
+        margin-bottom: 24px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+      .page-title h1 {
+        font-family: "Orbitron", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: 2px;
+      }
+      .page-title h1 span {
+        color: var(--accent2);
+      }
+      .page-title-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: "Share Tech Mono", monospace;
+        margin-top: 4px;
+      }
+      .live-time {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 12px;
+        color: var(--accent);
+      }
+
+      /* STATS */
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+      }
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--sc, var(--accent2)),
+          transparent
+        );
+      }
+      .stat-card:hover {
+        border-color: var(--border-bright);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      }
+      .stat-card.c-cyan {
+        --sc: var(--accent);
+      }
+      .stat-card.c-green {
+        --sc: var(--accent3);
+      }
+      .sc-icon {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        font-size: 20px;
+        opacity: 0.4;
+      }
+      .sc-label {
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-family: "Share Tech Mono", monospace;
+        margin-bottom: 8px;
+      }
+      .sc-val {
+        font-family: "Orbitron", sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--accent2);
+      }
+      .stat-card.c-cyan .sc-val {
+        color: var(--accent);
+      }
+      .stat-card.c-green .sc-val {
+        color: var(--accent3);
+      }
+      .sc-sub {
+        font-size: 11px;
+        color: var(--text-dim);
+        font-family: "Share Tech Mono", monospace;
+        margin-top: 6px;
+      }
+
+      /* PANEL */
+      .panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 24px;
+      }
+      .panel-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .panel-title {
+        font-family: "Orbitron", sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .ptdot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent2);
+        box-shadow: var(--glow-red);
+      }
+      .panel-count {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 11px;
+        color: var(--text-muted);
+        padding: 4px 10px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+      }
+
+      /* TABLE */
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .data-table th {
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 10px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-dim);
+        font-family: "Share Tech Mono", monospace;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      .data-table td {
+        padding: 13px 16px;
+        border-bottom: 1px solid rgba(15, 58, 82, 0.4);
+        transition: background 0.15s;
+        vertical-align: middle;
+      }
+      .data-table tr:last-child td {
+        border-bottom: none;
+      }
+      .data-table tbody tr:hover td {
+        background: var(--bg-hover);
+      }
+      .mono {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /* EMAIL BADGES */
+      .email-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .email-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .email-dot.blocker {
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--accent);
+      }
+      .email-dot.blocked {
+        background: var(--accent2);
+        box-shadow: 0 0 6px var(--accent2);
+      }
+      .email-addr {
+        font-family: "Share Tech Mono", monospace;
+        font-size: 12px;
+        color: var(--text-primary);
+      }
+
+      /* STATUS PILL */
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-family: "Share Tech Mono", monospace;
+        white-space: nowrap;
+      }
+      .status-blocked {
+        background: rgba(255, 56, 96, 0.1);
+        color: var(--accent2);
+        border: 1px solid rgba(255, 56, 96, 0.3);
+      }
+      .status-restricted {
+        background: rgba(255, 140, 0, 0.1);
+        color: #ff8c00;
+        border: 1px solid rgba(255, 140, 0, 0.3);
+      }
+
+      /* ACTION BUTTONS */
+      .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-family: "Share Tech Mono", monospace;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .btn-restrict {
+        background: rgba(255, 56, 96, 0.1);
+        color: var(--accent2);
+        border-color: rgba(255, 56, 96, 0.3);
+      }
+      .btn-restrict:hover {
+        background: rgba(255, 56, 96, 0.2);
+        box-shadow: var(--glow-red);
+        border-color: var(--accent2);
+      }
+      .btn-allow {
+        background: rgba(57, 255, 20, 0.08);
+        color: var(--accent3);
+        border-color: rgba(57, 255, 20, 0.25);
+      }
+      .btn-allow:hover {
+        background: rgba(57, 255, 20, 0.15);
+        box-shadow: 0 0 12px rgba(57, 255, 20, 0.2);
+        border-color: var(--accent3);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-dim);
+        font-family: "Share Tech Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 1px;
+        line-height: 2;
+      }
+      .empty-icon {
+        font-size: 40px;
+        opacity: 0.3;
+        display: block;
+        margin-bottom: 12px;
+      }
+      .footer {
+        padding: 16px 28px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--text-dim);
+        font-family: "Share Tech Mono", monospace;
+      }
+
+      @media (max-width: 900px) {
+        .stats-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        .stats-row {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          transform: translateX(calc(-1 * var(--sidebar-w)));
+        }
+        .sidebar.mobile-open {
+          transform: none;
+        }
+        .main-content {
+          margin-left: 0 !important;
+        }
+        .page-body {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preloader">
+      <div class="loader-ring"></div>
+      <div class="loader-text">LOADING BLOCK LIST...</div>
+    </div>
+
+    {% if messages %} {% for message in messages %}
+    <div
+      style="
+        position: fixed;
+        top: 80px;
+        right: 24px;
+        z-index: 9998;
+        background: var(--bg-card);
+        border: 1px solid var(--accent2);
+        border-radius: 10px;
+        padding: 14px 20px;
+        font-size: 13px;
+        color: var(--text-primary);
+        box-shadow: var(--glow-red);
+        max-width: 320px;
+      "
+    >
+      ⚠ {{ message }}
+    </div>
+    {% endfor %} {% endif %}
+
+    <div id="main-wrapper">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+          <div class="logo-icon">🛡</div>
+          <div>
+            <div class="logo-text">PhishGuard</div>
+            <div class="logo-sub">ADMIN CONSOLE</div>
+          </div>
+        </div>
+        <div class="nav-label">Navigation</div>
+        <nav>
+          <div class="nav-item">
+            <button class="nav-link" onclick="toggleNav(this)">
+              <span class="nav-icon">⚡</span> Dashboard
+              <span class="nav-arrow">›</span>
+            </button>
+            <div class="nav-sub"><a href="/adminHome">🏠 Home</a></div>
+          </div>
+          <div class="nav-item">
+            <button class="nav-link active" onclick="toggleNav(this)">
+              <span class="nav-icon">👁</span> View
+              <span class="nav-arrow open">›</span>
+            </button>
+            <div class="nav-sub open">
+              <a href="/viewUsers">👤 Users</a>
+              <a href="/viewFeedbacks">💬 Feedbacks</a>
+              <a href="/adminBlockedUsers" style="color: var(--accent)"
+                >🚫 Blocked Users</a
+              >
+            </div>
+          </div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sys-status">
+            <div class="status-dot"></div>
+            <span>SYSTEM OPERATIONAL</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="main-content" id="mainContent">
+        <header class="header">
+          <div class="header-left">
+            <div class="hamburger" onclick="toggleSidebar()">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="breadcrumb">
+              <span>PhishGuard</span> › Admin › View ›
+              <span>Blocked Users</span>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="dropdown" id="ddUser">
+              <div class="user-menu" onclick="toggleDD('ddUser')">
+                <div class="user-avatar">{{ admin_name|slice:":1"|upper }}</div>
+                <div>
+                 <div class="user-name">{{ admin_name }}</div>
+                  <div class="user-role">{{ admin_role }}</div>
+                </div>
+                <span
+                  style="
+                    color: var(--text-dim);
+                    font-size: 10px;
+                    margin-left: 4px;
+                  "
+                  >▾</span
+                >
+              </div>
+              <div class="dropdown-menu">
+                <div class="dd-item" onclick="location.href = '/login'">
+                  <span style="font-size: 14px">🔑</span>
+                  <span class="dd-name">Logout</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div class="page-body">
+          <div class="page-title">
+            <div>
+              <h1>BLOCKED <span>USERS</span></h1>
+              <div class="page-title-sub">ADMIN PANEL / VIEW / BLOCK LIST</div>
+            </div>
+            <div class="live-time" id="liveTime"></div>
+          </div>
+
+          <!-- STATS -->
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="sc-icon">🚫</div>
+              <div class="sc-label">Total Blocked</div>
+              <div class="sc-val">{{ blockData|length }}</div>
+              <div class="sc-sub">Entries in block list</div>
+            </div>
+            <div class="stat-card c-cyan">
+              <div class="sc-icon">🔒</div>
+              <div class="sc-label">Restricted</div>
+              <div class="sc-val">
+               {% with 0 as count %}
+{% for i in blockData %}
+    {% if i.status == "Restricted" %}
+        {% widthratio count 1 1 as count %}
+    {% endif %}
+{% endfor %}
+{{ count }}
+{% endwith %}
+              </div>
+              <div class="sc-sub">System-restricted accounts</div>
+            </div>
+            <div class="stat-card c-green">
+              <div class="sc-icon">✅</div>
+              <div class="sc-label">Total Users</div>
+              <div class="sc-val">{{ total_users|default:0 }}</div>
+              <div class="sc-sub">Registered in system</div>
+            </div>
+          </div>
+
+          <!-- BLOCK LIST TABLE -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <div class="ptdot"></div>
+                BLOCK LIST
+              </div>
+              <div class="panel-count">
+                {{ blockData|length }} {{ blockData|length|pluralize:"ENTRY,ENTRIES" }}
+              </div>
+            </div>
+            <div style="padding: 0">
+              {% if blockData %}
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Blocking User</th>
+                    <th>Blocked User</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for i in blockData %}
+                  <tr>
+                    <td class="mono">{{ forloop.counter }}</td>
+                    <td>
+                      <div class="email-cell">
+                        <div class="email-dot blocker"></div>
+                        <span class="email-addr">{{ i.blocking_user_id }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="email-cell">
+                        <div class="email-dot blocked"></div>
+                        <span class="email-addr">{{ i.blocked_user_id }}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {% if i.status == 'Blocked' %}
+                      <span class="status-pill status-blocked">🚫 BLOCKED</span>
+                      {% else %}
+                      <span class="status-pill status-restricted"
+                        >🔒 RESTRICTED</span
+                      >
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if i.status == 'Blocked' %}
+                      <a
+                        href="/restrictUser?id={{ i.blocked_user_id }}"
+                        class="btn-action btn-restrict"
+                      >
+                        🔒 RESTRICT
+                      </a>
+                      {% else %}
+                      <a
+                        href="/allowUser?id={{ i.blocked_user_id }}"
+                        class="btn-action btn-allow"
+                      >
+                        ✅ ALLOW
+                      </a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <div class="empty-state">
+                <span class="empty-icon">🛡</span>
+                NO BLOCKED USERS<br />
+                <span style="font-size: 10px; color: var(--text-dim)"
+                  >The block list is currently empty</span
+                >
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <footer class="footer">
+          <span>© 2026 PHISHING EMAIL DETECTION SYSTEM</span>
+          <span>{{ blockData|length }} BLOCKED ENTRIES</span>
+        </footer>
+      </div>
+    </div>
+
+    <script>
+      window.addEventListener("load", function () {
+        setTimeout(function () {
+          document.getElementById("preloader").classList.add("hide");
+        }, 600);
+      });
+      function tick() {
+        var e = document.getElementById("liveTime");
+        if (e)
+          e.textContent =
+            new Date().toLocaleTimeString("en-US", { hour12: false }) + " UTC";
+      }
+      tick();
+      setInterval(tick, 1000);
+      var sidebarOpen = true;
+      function toggleSidebar() {
+        var s = document.getElementById("sidebar");
+        var m = document.getElementById("mainContent");
+        sidebarOpen = !sidebarOpen;
+        if (window.innerWidth <= 640) {
+          s.classList.toggle("mobile-open", sidebarOpen);
+        } else {
+          s.classList.toggle("collapsed", !sidebarOpen);
+          m.style.marginLeft = sidebarOpen ? "" : "0";
+        }
+      }
+      function toggleNav(btn) {
+        var sub = btn.nextElementSibling;
+        var arrow = btn.querySelector(".nav-arrow");
+        var isOpen = sub.classList.contains("open");
+        document.querySelectorAll(".nav-sub.open").forEach(function (s) {
+          s.classList.remove("open");
+          var p = s.previousElementSibling;
+          if (p) {
+            var a = p.querySelector(".nav-arrow");
+            if (a) a.classList.remove("open");
+            p.classList.remove("active");
+          }
+        });
+        if (!isOpen) {
+          sub.classList.add("open");
+          if (arrow) arrow.classList.add("open");
+          btn.classList.add("active");
+        } else {
+          btn.classList.remove("active");
+        }
+      }
+      function toggleDD(id) {
+        var el = document.getElementById(id);
+        var was = el.classList.contains("open");
+        document.querySelectorAll(".dropdown.open").forEach(function (d) {
+          d.classList.remove("open");
+        });
+        if (!was) el.classList.add("open");
+      }
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".dropdown"))
+          document.querySelectorAll(".dropdown.open").forEach(function (d) {
+            d.classList.remove("open");
+          });
+      });
+    </script>
+  </body>
+</html>
+
+{% endblock %}

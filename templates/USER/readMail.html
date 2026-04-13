@@ -1,0 +1,597 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard — Read Mail</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-deep:#050a0f; --bg-panel:#08111a; --bg-card:#0c1823; --bg-hover:#102030;
+            --border:#0f3a52; --border-bright:#1a6a8a;
+            --accent:#00d4ff; --accent2:#ff3860; --accent3:#39ff14; --accent4:#ff8c00;
+            --text-primary:#cde8f5; --text-muted:#4a7a99; --text-dim:#2a5a77;
+            --glow:0 0 24px rgba(0,212,255,0.35); --glow-red:0 0 24px rgba(255,56,96,0.3);
+            --sidebar-w:240px; --header-h:60px;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Rajdhani',sans-serif;background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);}
+
+        /* PRELOADER */
+        #preloader{position:fixed;inset:0;z-index:99999;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.6s ease;}
+        #preloader.hide{opacity:0;pointer-events:none;}
+        .loader-ring{width:56px;height:56px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.9s linear infinite;}
+        .loader-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:3px;animation:blink 1s step-end infinite;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        @keyframes blink{50%{opacity:0;}}
+
+        /* TOAST */
+        .toast{position:fixed;top:24px;right:24px;z-index:9997;background:var(--bg-card);border:1px solid var(--accent);border-radius:10px;padding:14px 20px;max-width:340px;font-size:13px;color:var(--text-primary);box-shadow:var(--glow);animation:slideIn 0.3s ease;transition:opacity 0.5s;}
+        @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+        /* LAYOUT */
+        #main-wrapper{display:flex;min-height:100vh;}
+
+        /* SIDEBAR */
+        .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--bg-panel);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;transition:transform 0.3s ease;}
+        .sidebar.collapsed{transform:translateX(calc(-1 * var(--sidebar-w)));}
+        .sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+        .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#0070ff);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:var(--glow);}
+        .logo-text{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;line-height:1.2;}
+        .logo-sub{font-size:9px;color:var(--text-muted);letter-spacing:2px;font-family:'Share Tech Mono',monospace;}
+        .nav-label{padding:20px 20px 8px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+        .nav-item{position:relative;}
+        .nav-link{display:flex;align-items:center;gap:12px;padding:11px 20px;color:var(--text-muted);font-size:14px;font-weight:500;transition:all 0.2s;cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+        .nav-link:hover,.nav-link.active{color:var(--accent);background:rgba(0,212,255,0.06);}
+        .nav-link:hover::before,.nav-link.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);box-shadow:var(--glow);}
+        .nav-icon{width:18px;text-align:center;font-size:16px;}
+        .nav-arrow{margin-left:auto;transition:transform 0.2s;font-size:10px;}
+        .nav-arrow.open{transform:rotate(90deg);}
+        .nav-sub{display:none;background:rgba(0,0,0,0.2);}
+        .nav-sub.open{display:block;}
+        .nav-sub a{display:flex;align-items:center;gap:10px;padding:9px 20px 9px 50px;color:var(--text-muted);text-decoration:none;font-size:13px;transition:all 0.2s;}
+        .nav-sub a::before{content:'›';color:var(--text-dim);}
+        .nav-sub a:hover{color:var(--accent);padding-left:54px;}
+        .sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);}
+        .sys-status{display:flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);}
+        .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent3);box-shadow:0 0 6px var(--accent3);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+        /* MAIN */
+        .main-content{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left 0.3s ease;}
+
+        /* HEADER */
+        .header{height:var(--header-h);background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50;}
+        .header-left{display:flex;align-items:center;gap:16px;}
+        .hamburger{width:32px;height:32px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid var(--border);border-radius:6px;transition:all 0.2s;}
+        .hamburger:hover{border-color:var(--accent);box-shadow:var(--glow);}
+        .hamburger span{width:14px;height:1.5px;background:var(--text-muted);}
+        .hamburger:hover span{background:var(--accent);}
+        .breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);}
+        .breadcrumb span{color:var(--accent);font-family:'Share Tech Mono',monospace;}
+        .header-right{display:flex;align-items:center;gap:10px;}
+        .compose-btn{display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;border:none;background:var(--accent);color:#000;text-decoration:none;font-size:12px;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:1px;transition:all 0.2s;box-shadow:var(--glow);}
+        .compose-btn:hover{background:#33ddff;transform:translateY(-1px);}
+        .dropdown{position:relative;}
+        .user-pill{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 12px 4px 4px;border-radius:40px;border:1px solid var(--border);transition:all 0.2s;background:var(--bg-card);}
+        .user-pill:hover{border-color:var(--accent);box-shadow:var(--glow);}
+        .user-photo{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--border-bright);}
+        .user-photo-fallback{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#0070ff);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;font-family:'Orbitron',sans-serif;}
+        .user-info-name{font-size:13px;font-weight:600;color:var(--text-primary);}
+        .user-info-role{font-size:9px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;}
+        .dropdown-menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--bg-card);border:1px solid var(--border-bright);border-radius:12px;min-width:180px;box-shadow:0 20px 60px rgba(0,0,0,0.6),var(--glow);opacity:0;pointer-events:none;transform:translateY(-8px);transition:all 0.2s;z-index:200;padding:6px;}
+        .dropdown.open .dropdown-menu{opacity:1;pointer-events:all;transform:translateY(0);}
+        .dd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;transition:background 0.2s;text-decoration:none;color:var(--text-muted);font-size:13px;font-weight:500;}
+        .dd-item:hover{background:var(--bg-hover);color:var(--accent);}
+        .dd-divider{height:1px;background:var(--border);margin:4px 0;}
+
+        /* PAGE */
+        .page-body{flex:1;padding:28px;background:radial-gradient(ellipse at 80% 10%,rgba(0,212,255,0.04) 0%,transparent 50%),radial-gradient(ellipse at 10% 80%,rgba(255,56,96,0.03) 0%,transparent 50%),var(--bg-deep);}
+        .page-title{margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;}
+        .page-title h1{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:2px;}
+        .page-title h1 span{color:var(--accent);}
+        .page-title-sub{font-size:11px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;margin-top:4px;}
+        .live-time{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);}
+
+        /* MAIN LAYOUT */
+        .read-grid{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start;}
+
+        /* EMAIL NAV */
+        .email-nav{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:sticky;top:88px;}
+        .email-nav-compose{display:block;margin:16px;padding:11px;text-align:center;background:var(--accent);color:#000;border-radius:10px;text-decoration:none;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;transition:all 0.2s;box-shadow:var(--glow);}
+        .email-nav-compose:hover{background:#33ddff;transform:translateY(-2px);}
+        .email-nav-list{padding:8px 0 16px;}
+        .email-nav-item{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;text-decoration:none;color:var(--text-muted);font-size:13px;font-weight:500;transition:all 0.2s;border-left:2px solid transparent;}
+        .email-nav-item:hover{color:var(--accent);background:rgba(0,212,255,0.05);border-left-color:var(--accent);}
+        .email-nav-item.active{color:var(--accent);background:rgba(0,212,255,0.08);border-left-color:var(--accent);}
+        .email-nav-left{display:flex;align-items:center;gap:10px;}
+        .nav-badge{background:var(--accent);color:#000;border-radius:10px;padding:2px 7px;font-size:10px;font-family:'Share Tech Mono',monospace;font-weight:700;}
+
+        /* RIGHT COLUMN */
+        .right-col{display:flex;flex-direction:column;gap:20px;}
+
+        /* THREAT BANNER */
+        .threat-banner{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:12px;animation:fadein 0.5s ease both;}
+        .threat-banner.phishing{background:rgba(255,56,96,0.1);border:1px solid rgba(255,56,96,0.35);box-shadow:var(--glow-red);}
+        .threat-banner.safe   {background:rgba(57,255,20,0.07);border:1px solid rgba(57,255,20,0.3);}
+        .threat-banner.unknown{background:rgba(26,106,138,0.15);border:1px solid var(--border-bright);}
+        .tb-icon{font-size:26px;flex-shrink:0;}
+        .tb-title{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;}
+        .tb-title.red{color:var(--accent2);}
+        .tb-title.green{color:var(--accent3);}
+        .tb-title.muted{color:var(--text-muted);}
+        .tb-sub{font-size:12px;color:var(--text-muted);margin-top:3px;font-family:'Share Tech Mono',monospace;}
+        @keyframes fadein{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+        /* ACTION BAR */
+        .action-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+        .btn-action{display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:8px;font-size:12px;font-family:'Share Tech Mono',monospace;font-weight:600;letter-spacing:1px;text-decoration:none;transition:all 0.2s;border:1px solid transparent;}
+        .btn-block{background:rgba(255,56,96,0.08);color:var(--accent2);border-color:rgba(255,56,96,0.25);}
+        .btn-block:hover{background:rgba(255,56,96,0.18);border-color:var(--accent2);box-shadow:var(--glow-red);transform:translateY(-1px);}
+        .btn-delete{background:rgba(74,122,153,0.1);color:var(--text-muted);border-color:var(--border);}
+        .btn-delete:hover{background:rgba(74,122,153,0.2);border-color:var(--border-bright);transform:translateY(-1px);}
+        .btn-back{background:transparent;color:var(--text-muted);border-color:var(--border);}
+        .btn-back:hover{border-color:var(--accent);color:var(--accent);}
+
+        /* EMAIL PANEL */
+        .email-panel{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:14px;overflow:hidden;position:relative;animation:slideup 0.5s ease 0.1s both;}
+        .email-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+        @keyframes slideup{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+        /* EMAIL HEADER */
+        .email-header{padding:24px 28px;border-bottom:1px solid var(--border);}
+        .sender-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+        .sender-avatar{width:44px;height:44px;border-radius:12px;object-fit:cover;border:1px solid var(--border-bright);flex-shrink:0;}
+        .sender-avatar-fallback{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,rgba(0,212,255,0.2),rgba(0,112,255,0.2));border:1px solid var(--border-bright);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;color:var(--accent);flex-shrink:0;}
+        .sender-name{font-size:15px;font-weight:700;color:var(--text-primary);}
+        .sender-date{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:3px;}
+        .email-divider{height:1px;background:var(--border);margin:0 0 16px;}
+        .email-meta{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+        .email-subject{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+        .email-to{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
+        .email-time{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);white-space:nowrap;flex-shrink:0;}
+
+        /* EMAIL BODY */
+        .email-body{padding:28px;}
+        .email-body-text{font-size:15px;line-height:1.8;color:var(--text-primary);white-space:pre-wrap;word-break:break-word;}
+        .email-regards{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+        .email-regards-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px;}
+        .email-regards-name{font-size:15px;font-weight:600;color:var(--text-primary);}
+
+        /* THREAT ANALYSIS */
+        .analysis-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:relative;animation:slideup 0.5s ease 0.2s both;}
+        .analysis-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent2),transparent);}
+        .analysis-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+        .analysis-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--text-primary);}
+        .ptdot-red{width:6px;height:6px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px rgba(255,56,96,0.5);animation:pulse 2s ease infinite;}
+        .analysis-body{padding:20px;display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center;}
+
+        /* DONUT CHART */
+        .chart-wrap{position:relative;width:200px;height:200px;flex-shrink:0;}
+        .chart-canvas{width:200px!important;height:200px!important;}
+        .chart-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
+        .chart-pct{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;}
+        .chart-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--text-muted);}
+
+        /* SCORE BARS */
+        .score-section{flex:1;}
+        .score-item{margin-bottom:16px;}
+        .score-head{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;}
+        .score-name{color:var(--text-muted);}
+        .score-val{font-family:'Share Tech Mono',monospace;color:var(--text-primary);}
+        .score-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+        .score-fill{height:100%;border-radius:3px;transition:width 1.4s cubic-bezier(0.4,0,0.2,1);}
+        .fill-red  {background:linear-gradient(90deg,#660015,var(--accent2));}
+        .fill-green{background:linear-gradient(90deg,#133d00,var(--accent3));box-shadow:0 0 6px rgba(57,255,20,0.3);}
+        .fill-cyan {background:linear-gradient(90deg,#004d66,var(--accent));box-shadow:0 0 6px rgba(0,212,255,0.3);}
+
+        /* FOOTER */
+        .footer{padding:14px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+
+        @media(max-width:900px){.read-grid{grid-template-columns:1fr;}.email-nav{position:static;}.analysis-body{grid-template-columns:1fr;}.chart-wrap{margin:0 auto;}}
+        @media(max-width:640px){.sidebar{transform:translateX(calc(-1 * var(--sidebar-w)));}.sidebar.mobile-open{transform:none;}.main-content{margin-left:0!important;}.page-body{padding:16px;}.action-bar{flex-direction:column;align-items:flex-start;}.email-header{padding:16px;}.email-body{padding:16px;}}
+    </style>
+</head>
+<body>
+
+<div id="preloader">
+    <div class="loader-ring"></div>
+    <div class="loader-label">LOADING MAIL...</div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="toast">✓ {{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div id="main-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">🛡</div>
+            <div>
+                <div class="logo-text">PhishGuard</div>
+                <div class="logo-sub">USER PORTAL</div>
+            </div>
+        </div>
+        <div class="nav-label">Dashboard</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚡</span> Dashboard <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub"><a href="/userHome">🏠 Home</a></div>
+            </div>
+        </nav>
+        <div class="nav-label">Email</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link active" onclick="toggleNav(this)">
+                    <span class="nav-icon">✉</span> Email <span class="nav-arrow open">›</span>
+                </button>
+                <div class="nav-sub open">
+                    <a href="/inbox" style="color:var(--accent);">📥 Inbox</a>
+                    <a href="/drafts">📝 Drafts</a>
+                    <a href="/compose">✏ Compose</a>
+                    <a href="/outBox">📤 Outbox</a>
+                </div>
+            </div>
+        </nav>
+        <div class="nav-label">More</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚙</span> Settings <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub">
+                    <a href="/viewProfile">👤 Profile</a>
+                    <a href="/addFeedback">💬 Feedback</a>
+                    <a href="/blockedUsers">🚫 Blocked Users</a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sys-status"><div class="status-dot"></div><span>PROTECTION ACTIVE</span></div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-content" id="mainContent">
+
+        <header class="header">
+            <div class="header-left">
+                <div class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+                <div class="breadcrumb">
+                    <span>PhishGuard</span> › Inbox › <span>Read</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <a href="/compose" class="compose-btn">✏ COMPOSE</a>
+                <div class="dropdown" id="ddUser">
+                    <div class="user-pill" onclick="toggleDD('ddUser')">
+                        <img src="/static/media/{{ image }}" class="user-photo" alt="profile"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                        <div class="user-photo-fallback" style="display:none;">U</div>
+                        <div>
+                            <div class="user-info-name">My Account</div>
+                            <div class="user-info-role">USER</div>
+                        </div>
+                        <span style="color:var(--text-dim);font-size:10px;margin-left:2px;">▾</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="/viewProfile" class="dd-item"><span>👤</span> Profile</a>
+                        <a href="/inbox"       class="dd-item"><span>📥</span> Inbox</a>
+                        <div class="dd-divider"></div>
+                        <a href="/login" class="dd-item" style="color:var(--accent2);"><span>🔑</span> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-body">
+
+            <div class="page-title">
+                <div>
+                    <h1>READ <span>EMAIL</span></h1>
+                    <div class="page-title-sub">USER PORTAL / INBOX / VIEW MESSAGE</div>
+                </div>
+                <div class="live-time" id="liveTime"></div>
+            </div>
+
+            <div class="read-grid">
+
+                <!-- LEFT: Email Nav -->
+                <div>
+                    <div class="email-nav">
+                        <a href="/compose" class="email-nav-compose">✏ COMPOSE</a>
+                        <div class="email-nav-list">
+                            <a href="/inbox"  class="email-nav-item active"><div class="email-nav-left"><span>📥</span> Inbox</div><span class="nav-badge">{{ count|default:0 }}</span></a>
+                            <a href="/outBox" class="email-nav-item"><div class="email-nav-left"><span>📤</span> Sent</div></a>
+                            <a href="/drafts" class="email-nav-item"><div class="email-nav-left"><span>📝</span> Drafts</div></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT -->
+                <div class="right-col">
+
+                    <!-- THREAT BANNER -->
+                    {% if msgData.prediction_result == '1' or msgData.prediction_result == 1 %}
+                    <div class="threat-banner phishing">
+                        <div class="tb-icon">🚨</div>
+                        <div>
+                            <div class="tb-title red">PHISHING EMAIL DETECTED</div>
+                            <div class="tb-sub">AI model flagged this email as a phishing attempt. Sender has been auto-blocked.</div>
+                        </div>
+                    </div>
+                    {% elif msgData.prediction_result == '0' or msgData.prediction_result == 0 %}
+                    <div class="threat-banner safe">
+                        <div class="tb-icon">✅</div>
+                        <div>
+                            <div class="tb-title green">EMAIL IS SAFE</div>
+                            <div class="tb-sub">AI model verified this email as safe. No threats detected.</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="threat-banner unknown">
+                        <div class="tb-icon">🔍</div>
+                        <div>
+                            <div class="tb-title muted">ANALYSIS PENDING</div>
+                            <div class="tb-sub">This email has not yet been classified by the AI model.</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ACTION BAR -->
+                    <div class="action-bar">
+                        <a href="/blockUser?from={{ msgData.fromMail.email }}&to={{ msgData.sendto }}"
+                           class="btn-action btn-block"
+                           onclick="return confirm('Block {{ msgData.fromMail.email }}?')">
+                            🚫 BLOCK SENDER
+                        </a>
+                        <a href="/deleteMail?id={{ msgData.id }}"
+                           class="btn-action btn-delete"
+                           onclick="return confirm('Delete this email?')">
+                            🗑 DELETE
+                        </a>
+                        <a href="/inbox" class="btn-action btn-back">← BACK TO INBOX</a>
+                    </div>
+
+                    <!-- EMAIL CONTENT PANEL -->
+                    <div class="email-panel">
+                        <div class="email-header">
+                            <div class="sender-row">
+                                <img src="/static/media/{{ msgData.fromMail.image }}"
+                                     class="sender-avatar" alt="{{ msgData.fromMail.name }}"
+                                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                <div class="sender-avatar-fallback" style="display:none;">
+                                    {{ msgData.fromMail.name|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <div class="sender-name">{{ msgData.fromMail.name }}</div>
+                                    <div class="sender-date">{{ msgData.date }}</div>
+                                </div>
+                            </div>
+                            <div class="email-divider"></div>
+                            <div class="email-meta">
+                                <div>
+                                    <div class="email-subject">{{ msgData.subject }}</div>
+                                    <div class="email-to">To: Me &lt;{{ msgData.fromMail.email }}&gt;</div>
+                                </div>
+                                <div class="email-time">{{ msgData.time }}</div>
+                            </div>
+                        </div>
+                        <div class="email-body">
+                            <div class="email-body-text">{{ msgData.description }}</div>
+                            <div class="email-regards">
+                                <div class="email-regards-label">KIND REGARDS</div>
+                                <div class="email-regards-name">{{ msgData.fromMail.name }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- THREAT ANALYSIS PANEL -->
+                    <div class="analysis-panel">
+                        <div class="analysis-header">
+                            <div class="ptdot-red"></div>
+                            <div class="analysis-title">AI VERDICT &amp; SENTIMENT</div>
+                        </div>
+                        <div class="analysis-body">
+
+                            <!-- Donut chart — driven by AI model verdict, not sentiment -->
+                            <div class="chart-wrap">
+                                <canvas id="threatChart" class="chart-canvas"></canvas>
+                                <div class="chart-center">
+                                    <div class="chart-pct" id="chartPct" style="color:var(--text-muted);font-size:15px;letter-spacing:1px;">...</div>
+                                    <div class="chart-lbl">AI VERDICT</div>
+                                </div>
+                            </div>
+
+                            <!-- Score bars -->
+                            <div class="score-section">
+                                <div class="score-item">
+                                    <div class="score-head">
+                                        <span class="score-name">Negative Sentiment</span>
+                                        <span class="score-val" id="lbl-threat" style="color:var(--accent2);">—</span>
+                                    </div>
+                                    <div class="score-bar">
+                                        <div class="score-fill fill-red" id="bar-threat" style="width:0%"></div>
+                                    </div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="score-head">
+                                        <span class="score-name">Neutral / Remainder</span>
+                                        <span class="score-val" id="lbl-safe" style="color:var(--accent);">—</span>
+                                    </div>
+                                    <div class="score-bar">
+                                        <div class="score-fill fill-cyan" id="bar-safe" style="width:0%"></div>
+                                    </div>
+                                </div>
+                                <div class="score-item">
+                                    <div class="score-head">
+                                        <span class="score-name">Positive Sentiment</span>
+                                        <span class="score-val" id="lbl-pos" style="color:var(--accent);">—</span>
+                                    </div>
+                                    <div class="score-bar">
+                                        <div class="score-fill fill-cyan" id="bar-pos" style="width:0%"></div>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:16px;padding:12px 14px;background:rgba(12,24,35,0.8);border:1px solid var(--border-bright);border-radius:8px;">
+                                    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text-dim);margin-bottom:3px;">NAIVE BAYES MODEL VERDICT</div>
+                                    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);margin-bottom:8px;opacity:0.6;">⚠ Sentiment chart above is independent of AI verdict</div>
+                                    {% if msgData.prediction_result == '1' or msgData.prediction_result == 1 %}
+                                    <div style="color:var(--accent2);font-weight:700;font-size:14px;">🎣 PHISHING DETECTED</div>
+                                    {% elif msgData.prediction_result == '0' or msgData.prediction_result == 0 %}
+                                    <div style="color:var(--accent3);font-weight:700;font-size:14px;">✓ SAFE EMAIL</div>
+                                    {% else %}
+                                    <div style="color:var(--text-muted);font-weight:700;font-size:14px;">— NOT CLASSIFIED</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /right-col -->
+            </div><!-- /read-grid -->
+        </div><!-- /page-body -->
+
+        <footer class="footer">
+            <span>© 2026 PHISHING EMAIL DETECTION SYSTEM</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <div class="status-dot"></div><span>AI PROTECTION ACTIVE</span>
+            </div>
+        </footer>
+    </div>
+</div>
+
+{{ cntn|default:0|json_script:"d-cntn" }}
+{{ rem|default:0|json_script:"d-rem" }}
+{{ cnt|default:0|json_script:"d-cnt" }}
+{{ msgData.prediction_result|default:""|json_script:"d-pred" }}
+
+<script>
+window.addEventListener('load', function () {
+    setTimeout(function () { document.getElementById('preloader').classList.add('hide'); }, 600);
+    animateBars();
+    buildChart();
+});
+
+function tick(){var e=document.getElementById('liveTime');if(e)e.textContent=new Date().toLocaleTimeString('en-US',{hour12:false})+' UTC';}
+tick();setInterval(tick,1000);
+
+var sidebarOpen=true;
+function toggleSidebar(){var s=document.getElementById('sidebar');var m=document.getElementById('mainContent');sidebarOpen=!sidebarOpen;if(window.innerWidth<=640){s.classList.toggle('mobile-open',sidebarOpen);}else{s.classList.toggle('collapsed',!sidebarOpen);m.style.marginLeft=sidebarOpen?'':'0';}}
+
+function toggleNav(btn){var sub=btn.nextElementSibling;var arrow=btn.querySelector('.nav-arrow');var isOpen=sub.classList.contains('open');document.querySelectorAll('.nav-sub.open').forEach(function(s){s.classList.remove('open');var p=s.previousElementSibling;if(p){var a=p.querySelector('.nav-arrow');if(a)a.classList.remove('open');p.classList.remove('active');}});if(!isOpen){sub.classList.add('open');if(arrow)arrow.classList.add('open');btn.classList.add('active');}else{btn.classList.remove('active');}}
+
+function toggleDD(id){var el=document.getElementById(id);var was=el.classList.contains('open');document.querySelectorAll('.dropdown.open').forEach(function(d){d.classList.remove('open');});if(!was)el.classList.add('open');}
+document.addEventListener('click',function(e){if(!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown.open').forEach(function(d){d.classList.remove('open');});});
+
+function getVal(id) {
+    var el = document.getElementById(id);
+    if (!el) return 0;
+    try { return parseFloat(JSON.parse(el.textContent)) || 0; } catch(e){ return 0; }
+}
+
+function animateBars() {
+    var cntn = getVal('d-cntn');
+    var rem  = getVal('d-rem');
+    var cnt  = getVal('d-cnt');
+
+    // labels
+    var lt = document.getElementById('lbl-threat');
+    var ls = document.getElementById('lbl-safe');
+    var lp = document.getElementById('lbl-pos');
+    if (lt) lt.textContent = cntn.toFixed(1) + '%';
+    if (ls) ls.textContent = rem.toFixed(1)  + '%';
+    if (ls) ls.style.color = 'var(--accent)';
+    if (lp) lp.textContent = cnt.toFixed(3);
+
+    // chart center is handled by buildChart() based on AI verdict
+
+    // bars
+    setTimeout(function(){
+        var bt = document.getElementById('bar-threat');
+        var bs = document.getElementById('bar-safe');
+        var bp = document.getElementById('bar-pos');
+        if (bt) bt.style.width = Math.min(cntn, 100) + '%';
+        if (bs) bs.style.width = Math.min(rem,  100) + '%';
+        if (bp) bp.style.width = Math.min(cnt * 100, 100) + '%';
+    }, 300);
+}
+
+function buildChart() {
+    // Donut reflects AI verdict (prediction_result), NOT sentiment score
+    var predRaw = '';
+    try { predRaw = JSON.parse(document.getElementById('d-pred').textContent); } catch(e){}
+    var isPhishing = (predRaw === '1' || predRaw === 1);
+    var isSafe     = (predRaw === '0' || predRaw === 0);
+
+    var phishVal, safeVal, phishColor, safeColor, centerColor, centerText, centerLbl;
+
+    if (isPhishing) {
+        phishVal = 100; safeVal = 0;
+        phishColor = 'rgba(255,56,96,0.85)'; safeColor = 'rgba(255,56,96,0.2)';
+        centerColor = 'var(--accent2)'; centerText = 'PHISHING'; centerLbl = 'DETECTED';
+    } else if (isSafe) {
+        phishVal = 0; safeVal = 100;
+        phishColor = 'rgba(57,255,20,0.2)'; safeColor = 'rgba(57,255,20,0.8)';
+        centerColor = 'var(--accent3)'; centerText = 'SAFE'; centerLbl = 'VERIFIED';
+    } else {
+        // Not classified yet — show neutral grey ring
+        phishVal = 50; safeVal = 50;
+        phishColor = 'rgba(74,122,153,0.4)'; safeColor = 'rgba(74,122,153,0.2)';
+        centerColor = 'var(--text-muted)'; centerText = 'N/A'; centerLbl = 'PENDING';
+    }
+
+    // Update center label
+    var cp = document.getElementById('chartPct');
+    if (cp) {
+        cp.textContent = centerText;
+        cp.style.color = centerColor;
+        cp.style.fontSize = '15px';
+        cp.style.letterSpacing = '1px';
+    }
+    var cl = document.querySelector('.chart-lbl');
+    if (cl) cl.textContent = centerLbl;
+
+    var ctx = document.getElementById('threatChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Phishing', 'Safe'],
+            datasets: [{
+                data: [phishVal, safeVal],
+                backgroundColor: [phishColor, safeColor],
+                borderColor:     ['#ff3860', '#39ff14'],
+                borderWidth: 2,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: false,
+            cutout: '72%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            animation: { duration: 1200, easing: 'easeInOutQuart' }
+        }
+    });
+}
+
+document.querySelectorAll('.toast').forEach(function(t){
+    setTimeout(function(){t.style.opacity='0';},4000);
+    setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},4600);
+});
+</script>
+</body>
+</html>

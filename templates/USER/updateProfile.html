@@ -1,0 +1,507 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard — Update Profile</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:#050a0f; --bg-panel:#08111a; --bg-card:#0c1823; --bg-hover:#102030;
+            --border:#0f3a52; --border-bright:#1a6a8a;
+            --accent:#00d4ff; --accent2:#ff3860; --accent3:#39ff14; --accent4:#ff8c00; --accent5:#a855f7;
+            --text-primary:#cde8f5; --text-muted:#4a7a99; --text-dim:#2a5a77;
+            --glow:0 0 24px rgba(0,212,255,0.35); --glow-red:0 0 24px rgba(255,56,96,0.3);
+            --sidebar-w:240px; --header-h:60px;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Rajdhani',sans-serif;background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);}
+
+        /* PRELOADER */
+        #preloader{position:fixed;inset:0;z-index:99999;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.6s ease;}
+        #preloader.hide{opacity:0;pointer-events:none;}
+        .loader-ring{width:56px;height:56px;border:2px solid var(--border);border-top-color:var(--accent5);border-radius:50%;animation:spin 0.9s linear infinite;}
+        .loader-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent5);letter-spacing:3px;animation:blink 1s step-end infinite;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        @keyframes blink{50%{opacity:0;}}
+
+        /* TOAST */
+        .toast{position:fixed;top:24px;right:24px;z-index:9997;background:var(--bg-card);border:1px solid var(--accent);border-radius:10px;padding:14px 20px;max-width:340px;font-size:13px;color:var(--text-primary);box-shadow:var(--glow);animation:slideIn 0.3s ease;transition:opacity 0.5s;}
+        @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+        /* LAYOUT */
+        #main-wrapper{display:flex;min-height:100vh;}
+
+        /* SIDEBAR */
+        .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--bg-panel);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;transition:transform 0.3s ease;}
+        .sidebar.collapsed{transform:translateX(calc(-1 * var(--sidebar-w)));}
+        .sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+        .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#0070ff);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:var(--glow);}
+        .logo-text{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;line-height:1.2;}
+        .logo-sub{font-size:9px;color:var(--text-muted);letter-spacing:2px;font-family:'Share Tech Mono',monospace;}
+        .nav-label{padding:20px 20px 8px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+        .nav-item{position:relative;}
+        .nav-link{display:flex;align-items:center;gap:12px;padding:11px 20px;color:var(--text-muted);font-size:14px;font-weight:500;transition:all 0.2s;cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+        .nav-link:hover,.nav-link.active{color:var(--accent);background:rgba(0,212,255,0.06);}
+        .nav-link:hover::before,.nav-link.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);box-shadow:var(--glow);}
+        .nav-icon{width:18px;text-align:center;font-size:16px;}
+        .nav-arrow{margin-left:auto;transition:transform 0.2s;font-size:10px;}
+        .nav-arrow.open{transform:rotate(90deg);}
+        .nav-sub{display:none;background:rgba(0,0,0,0.2);}
+        .nav-sub.open{display:block;}
+        .nav-sub a{display:flex;align-items:center;gap:10px;padding:9px 20px 9px 50px;color:var(--text-muted);text-decoration:none;font-size:13px;transition:all 0.2s;}
+        .nav-sub a::before{content:'›';color:var(--text-dim);}
+        .nav-sub a:hover{color:var(--accent);padding-left:54px;}
+        .sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);}
+        .sys-status{display:flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);}
+        .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent3);box-shadow:0 0 6px var(--accent3);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+        /* MAIN */
+        .main-content{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left 0.3s ease;}
+
+        /* HEADER */
+        .header{height:var(--header-h);background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50;}
+        .header-left{display:flex;align-items:center;gap:16px;}
+        .hamburger{width:32px;height:32px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid var(--border);border-radius:6px;transition:all 0.2s;}
+        .hamburger:hover{border-color:var(--accent);box-shadow:var(--glow);}
+        .hamburger span{width:14px;height:1.5px;background:var(--text-muted);}
+        .hamburger:hover span{background:var(--accent);}
+        .breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);}
+        .breadcrumb span{color:var(--accent5);font-family:'Share Tech Mono',monospace;}
+        .header-right{display:flex;align-items:center;gap:10px;}
+        .back-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);text-decoration:none;font-size:12px;font-family:'Share Tech Mono',monospace;letter-spacing:1px;transition:all 0.2s;}
+        .back-btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--glow);}
+        .dropdown{position:relative;}
+        .user-pill{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 12px 4px 4px;border-radius:40px;border:1px solid var(--border);transition:all 0.2s;background:var(--bg-card);}
+        .user-pill:hover{border-color:var(--accent);box-shadow:var(--glow);}
+        .user-photo{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--border-bright);}
+        .user-photo-fallback{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#0070ff);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;font-family:'Orbitron',sans-serif;}
+        .user-info-name{font-size:13px;font-weight:600;color:var(--text-primary);}
+        .user-info-role{font-size:9px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;}
+        .dropdown-menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--bg-card);border:1px solid var(--border-bright);border-radius:12px;min-width:180px;box-shadow:0 20px 60px rgba(0,0,0,0.6),var(--glow);opacity:0;pointer-events:none;transform:translateY(-8px);transition:all 0.2s;z-index:200;padding:6px;}
+        .dropdown.open .dropdown-menu{opacity:1;pointer-events:all;transform:translateY(0);}
+        .dd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;transition:background 0.2s;text-decoration:none;color:var(--text-muted);font-size:13px;font-weight:500;}
+        .dd-item:hover{background:var(--bg-hover);color:var(--accent);}
+        .dd-divider{height:1px;background:var(--border);margin:4px 0;}
+
+        /* PAGE */
+        .page-body{flex:1;padding:36px 40px;background:radial-gradient(ellipse at 70% 10%,rgba(168,85,247,0.04) 0%,transparent 50%),radial-gradient(ellipse at 20% 80%,rgba(0,212,255,0.03) 0%,transparent 50%),var(--bg-deep);}
+        .page-title{margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;}
+        .page-title h1{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:2px;}
+        .page-title h1 span{color:var(--accent5);}
+        .page-title-sub{font-size:11px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;margin-top:4px;}
+        .live-time{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);}
+
+        /* UPDATE FORM CARD */
+        .update-card{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:20px;overflow:hidden;position:relative;max-width:680px;margin:0 auto;animation:fadeup 0.6s ease both;}
+        @keyframes fadeup{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+        .update-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent5),transparent);}
+
+        .card-header-row{padding:22px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+        .card-header-title{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--text-primary);}
+        .ptdot-purple{width:6px;height:6px;border-radius:50%;background:var(--accent5);box-shadow:0 0 8px rgba(168,85,247,0.6);}
+        .card-header-sub{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:1px;}
+
+        .form-wrap{padding:28px;}
+
+        /* AVATAR PREVIEW */
+        .avatar-preview-row{display:flex;align-items:center;gap:20px;padding:16px 20px;background:rgba(168,85,247,0.05);border:1px solid rgba(168,85,247,0.15);border-radius:12px;margin-bottom:24px;}
+        .avatar-preview-ring{width:70px;height:70px;border-radius:50%;padding:2px;background:linear-gradient(135deg,var(--accent5),var(--accent));flex-shrink:0;}
+        .avatar-preview-img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid var(--bg-card);}
+        .avatar-preview-fallback{width:100%;height:100%;border-radius:50%;background:rgba(168,85,247,0.2);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;color:var(--accent5);border:2px solid var(--bg-card);}
+        .avatar-preview-info{flex:1;}
+        .avatar-preview-name{font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:4px;}
+        .avatar-preview-email{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted);}
+
+        /* SECTION LABEL */
+        .section-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent5);margin-bottom:14px;margin-top:22px;display:flex;align-items:center;gap:8px;}
+        .section-label::after{content:'';flex:1;height:1px;background:rgba(168,85,247,0.2);}
+
+        /* FORM GRID */
+        .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+        .form-group{margin-bottom:16px;}
+        .form-label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);font-family:'Share Tech Mono',monospace;margin-bottom:7px;}
+        .form-input-wrap{position:relative;}
+        .form-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text-dim);pointer-events:none;transition:color 0.2s;}
+        .form-icon-top{top:14px;transform:none;}
+        .form-control{width:100%;padding:12px 14px 12px 42px;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;color:var(--text-primary);font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:500;transition:all 0.2s;outline:none;}
+        .form-control::placeholder{color:var(--text-dim);}
+        .form-control:focus{border-color:var(--accent5);box-shadow:0 0 0 3px rgba(168,85,247,0.12);background:#0a1928;}
+        .form-input-wrap:focus-within .form-icon{color:var(--accent5);}
+        textarea.form-control{resize:vertical;min-height:90px;padding-top:13px;line-height:1.6;}
+
+        /* DATE INPUT */
+        input[type="date"].form-control{color-scheme:dark;}
+
+        /* FILE INPUT */
+        .file-wrap input[type="file"]{width:100%;padding:10px 14px;background:var(--bg-panel);border:1px dashed var(--border-bright);border-radius:10px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.2s;outline:none;}
+        .file-wrap input[type="file"]:hover{border-color:var(--accent5);background:#0a1928;}
+        .file-wrap input[type="file"]:focus{border-color:var(--accent5);box-shadow:0 0 0 3px rgba(168,85,247,0.1);}
+        .file-hint{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:5px;}
+
+        /* GENDER */
+        .gender-group{display:flex;gap:10px;}
+        .gender-option{flex:1;}
+        .gender-option input[type="radio"]{display:none;}
+        .gender-label{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--bg-panel);font-size:14px;font-weight:600;color:var(--text-muted);transition:all 0.2s;}
+        .gender-option input[type="radio"]:checked + .gender-label{border-color:var(--accent5);color:var(--accent5);background:rgba(168,85,247,0.08);box-shadow:0 0 12px rgba(168,85,247,0.2);}
+        .gender-label:hover{border-color:var(--border-bright);color:var(--text-primary);}
+
+        /* PASSWORD */
+        .pw-wrap{position:relative;}
+        .pw-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--text-dim);transition:color 0.2s;padding:0;}
+        .pw-toggle:hover{color:var(--accent5);}
+        .pw-strength{display:flex;gap:4px;margin-top:7px;}
+        .pw-bar{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background 0.3s;}
+        .pw-bar.weak{background:var(--accent2);}
+        .pw-bar.medium{background:var(--accent4);}
+        .pw-bar.strong{background:var(--accent3);}
+        .pw-hint{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);margin-top:5px;}
+
+        /* SUBMIT */
+        .btn-submit{width:100%;padding:14px;background:var(--accent5);color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;transition:all 0.25s;box-shadow:0 0 20px rgba(168,85,247,0.35);position:relative;overflow:hidden;margin-top:8px;}
+        .btn-submit::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);transform:translateX(-100%);transition:transform 0.4s;}
+        .btn-submit:hover{background:#c084fc;transform:translateY(-2px);box-shadow:0 0 40px rgba(168,85,247,0.5),0 8px 24px rgba(0,0,0,0.3);}
+        .btn-submit:hover::before{transform:translateX(100%);}
+
+        /* FOOTER */
+        .footer{padding:14px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+
+        @media(max-width:640px){.sidebar{transform:translateX(calc(-1 * var(--sidebar-w)));}.sidebar.mobile-open{transform:none;}.main-content{margin-left:0!important;}.page-body{padding:16px;}.form-wrap{padding:16px;}.form-row-2{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+
+<div id="preloader">
+    <div class="loader-ring"></div>
+    <div class="loader-label">LOADING...</div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="toast">✓ {{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div id="main-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">🛡</div>
+            <div>
+                <div class="logo-text">PhishGuard</div>
+                <div class="logo-sub">USER PORTAL</div>
+            </div>
+        </div>
+        <div class="nav-label">Dashboard</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚡</span> Dashboard <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub"><a href="/userHome">🏠 Home</a></div>
+            </div>
+        </nav>
+        <div class="nav-label">Email</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">✉</span> Email <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub">
+                    <a href="/inbox">📥 Inbox</a>
+                    <a href="/drafts">📝 Drafts</a>
+                    <a href="/compose">✏ Compose</a>
+                    <a href="/outBox">📤 Outbox</a>
+                </div>
+            </div>
+        </nav>
+        <div class="nav-label">More</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link active" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚙</span> Settings <span class="nav-arrow open">›</span>
+                </button>
+                <div class="nav-sub open">
+                    <a href="/viewProfile" style="color:var(--accent5);">👤 Profile</a>
+                    <a href="/addFeedback">💬 Feedback</a>
+                    <a href="/blockedUsers">🚫 Blocked Users</a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sys-status"><div class="status-dot"></div><span>PROTECTION ACTIVE</span></div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-content" id="mainContent">
+
+        <header class="header">
+            <div class="header-left">
+                <div class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+                <div class="breadcrumb">
+                    <span>PhishGuard</span> › Settings › Profile › <span>Update</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <a href="/viewProfile" class="back-btn">← BACK TO PROFILE</a>
+                <div class="dropdown" id="ddUser">
+                    <div class="user-pill" onclick="toggleDD('ddUser')">
+                        <img src="/static/media/{{ image }}" class="user-photo" alt="profile"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                        <div class="user-photo-fallback" style="display:none;">U</div>
+                        <div>
+                            <div class="user-info-name">My Account</div>
+                            <div class="user-info-role">USER</div>
+                        </div>
+                        <span style="color:var(--text-dim);font-size:10px;margin-left:2px;">▾</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="/viewProfile" class="dd-item"><span>👤</span> Profile</a>
+                        <a href="/inbox"       class="dd-item"><span>📥</span> Inbox</a>
+                        <div class="dd-divider"></div>
+                        <a href="/login" class="dd-item" style="color:var(--accent2);"><span>🔑</span> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-body">
+
+            <div class="page-title">
+                <div>
+                    <h1>UPDATE <span>PROFILE</span></h1>
+                    <div class="page-title-sub">USER PORTAL / SETTINGS / PROFILE / EDIT</div>
+                </div>
+                <div class="live-time" id="liveTime"></div>
+            </div>
+
+            {% for i in userData %}
+            <div class="update-card">
+                <div class="card-header-row">
+                    <div class="ptdot-purple"></div>
+                    <div class="card-header-title">EDIT ACCOUNT DETAILS</div>
+                    <div class="card-header-sub">ALL FIELDS REQUIRED</div>
+                </div>
+
+                <div class="form-wrap">
+
+                    <!-- Avatar preview -->
+                    <div class="avatar-preview-row">
+                        <div class="avatar-preview-ring">
+                            <img src="/static/media/{{ i.image }}" class="avatar-preview-img" alt="{{ i.name }}"
+                                id="avatarPreview"
+                                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                            <div class="avatar-preview-fallback" style="display:none;" id="avatarFallback">
+                                {{ i.name|slice:":1"|upper }}
+                            </div>
+                        </div>
+                        <div class="avatar-preview-info">
+                            <div class="avatar-preview-name" id="previewName">{{ i.name }}</div>
+                            <div class="avatar-preview-email">{{ i.email }}</div>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" id="updateForm">
+                        {% csrf_token %}
+
+                        <!-- Personal Info -->
+                        <div class="section-label">Personal Info</div>
+
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label class="form-label" for="name">Full Name</label>
+                                <div class="form-input-wrap">
+                                    <span class="form-icon">👤</span>
+                                    <input type="text" id="name" name="name" class="form-control"
+                                        value="{{ i.name }}" placeholder="Full name" required
+                                        oninput="document.getElementById('previewName').textContent=this.value||'Name'">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="email">Email Address</label>
+                                <div class="form-input-wrap">
+                                    <span class="form-icon">✉</span>
+                                    <input type="email" id="email" name="email" class="form-control"
+                                        value="{{ i.email }}" placeholder="Email" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label class="form-label" for="phone">Phone Number</label>
+                                <div class="form-input-wrap">
+                                    <span class="form-icon">📱</span>
+                                    <input type="text" id="phone" name="phone" class="form-control"
+                                        value="{{ i.phone }}" placeholder="9876543210"
+                                        pattern="[9876][0-9]+" maxlength="10" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="dob">Date of Birth</label>
+                                <div class="form-input-wrap">
+                                    <span class="form-icon">📅</span>
+                                    <input type="date" id="dob" name="dob" class="form-control"
+                                        value="{{ i.dob|date:'Y-m-d' }}"
+                                        max="{{ current_date|date:'Y-m-d' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Details -->
+                        <div class="section-label">Additional Details</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Gender</label>
+                            <div class="gender-group">
+                                <div class="gender-option">
+                                    <input type="radio" id="male" name="gender" value="Male"
+                                        {% if i.gender == 'Male' or i.gender == 'male' %}checked{% endif %} required>
+                                    <label class="gender-label" for="male">♂ Male</label>
+                                </div>
+                                <div class="gender-option">
+                                    <input type="radio" id="female" name="gender" value="Female"
+                                        {% if i.gender == 'Female' or i.gender == 'female' %}checked{% endif %}>
+                                    <label class="gender-label" for="female">♀ Female</label>
+                                </div>
+                                <div class="gender-option">
+                                    <input type="radio" id="other" name="gender" value="Other"
+                                        {% if i.gender != 'Male' and i.gender != 'male' and i.gender != 'Female' and i.gender != 'female' and i.gender %}checked{% endif %}>
+                                    <label class="gender-label" for="other">⚧ Other</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="address">Address</label>
+                            <div class="form-input-wrap">
+                                <span class="form-icon form-icon-top">📍</span>
+                                <textarea id="address" name="address" class="form-control"
+                                    placeholder="Your full address..." rows="3">{{ i.address }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Security -->
+                        <div class="section-label">Security & Photo</div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="image">Profile Photo</label>
+                            <div class="file-wrap">
+                                <input type="file" id="image" name="image" accept="image/*"
+                                    onchange="previewPhoto(this)" required>
+                            </div>
+                            <div class="file-hint">JPG, PNG or GIF · Upload new photo to replace current</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="password">Password</label>
+                            <div class="form-input-wrap pw-wrap">
+                                <span class="form-icon">🔒</span>
+                                <input type="password" id="password" name="password" class="form-control"
+                                    value="{{ i.loginid.viewPass }}"
+                                    placeholder="Min 8 chars, upper + lower + number"
+                                    pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                                    title="Must contain at least one number, one uppercase and lowercase letter, and at least 8 characters"
+                                    required oninput="checkStrength(this.value)">
+                                <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePw()">👁</button>
+                            </div>
+                            <div class="pw-strength">
+                                <div class="pw-bar" id="bar1"></div>
+                                <div class="pw-bar" id="bar2"></div>
+                                <div class="pw-bar" id="bar3"></div>
+                                <div class="pw-bar" id="bar4"></div>
+                            </div>
+                            <div class="pw-hint" id="pwHint">MIN 8 CHARS · UPPERCASE · LOWERCASE · NUMBER</div>
+                        </div>
+
+                        <button type="submit" class="btn-submit">✏ UPDATE PROFILE</button>
+
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div><!-- /page-body -->
+
+        <footer class="footer">
+            <span>© 2026 PHISHING EMAIL DETECTION SYSTEM</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <div class="status-dot"></div><span>PROTECTION ACTIVE</span>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load',function(){setTimeout(function(){document.getElementById('preloader').classList.add('hide');},600);});
+
+function tick(){var e=document.getElementById('liveTime');if(e)e.textContent=new Date().toLocaleTimeString('en-US',{hour12:false})+' UTC';}
+tick();setInterval(tick,1000);
+
+var sidebarOpen=true;
+function toggleSidebar(){var s=document.getElementById('sidebar');var m=document.getElementById('mainContent');sidebarOpen=!sidebarOpen;if(window.innerWidth<=640){s.classList.toggle('mobile-open',sidebarOpen);}else{s.classList.toggle('collapsed',!sidebarOpen);m.style.marginLeft=sidebarOpen?'':'0';}}
+
+function toggleNav(btn){var sub=btn.nextElementSibling;var arrow=btn.querySelector('.nav-arrow');var isOpen=sub.classList.contains('open');document.querySelectorAll('.nav-sub.open').forEach(function(s){s.classList.remove('open');var p=s.previousElementSibling;if(p){var a=p.querySelector('.nav-arrow');if(a)a.classList.remove('open');p.classList.remove('active');}});if(!isOpen){sub.classList.add('open');if(arrow)arrow.classList.add('open');btn.classList.add('active');}else{btn.classList.remove('active');}}
+
+function toggleDD(id){var el=document.getElementById(id);var was=el.classList.contains('open');document.querySelectorAll('.dropdown.open').forEach(function(d){d.classList.remove('open');});if(!was)el.classList.add('open');}
+document.addEventListener('click',function(e){if(!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown.open').forEach(function(d){d.classList.remove('open');});});
+
+// LIVE PHOTO PREVIEW
+function previewPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var img = document.getElementById('avatarPreview');
+        var fallback = document.getElementById('avatarFallback');
+        if (img) { img.src = e.target.result; img.style.display = ''; }
+        if (fallback) fallback.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+// PASSWORD TOGGLE
+function togglePw() {
+    var inp = document.getElementById('password');
+    var btn = document.getElementById('pwToggle');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// PASSWORD STRENGTH
+function checkStrength(val) {
+    var bars = [document.getElementById('bar1'),document.getElementById('bar2'),document.getElementById('bar3'),document.getElementById('bar4')];
+    var hint = document.getElementById('pwHint');
+    var score = 0;
+    if (val.length >= 8)   score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[a-z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    bars.forEach(function(b){ b.className = 'pw-bar'; });
+    var cls = score <= 2 ? 'weak' : score === 3 ? 'medium' : 'strong';
+    var msg = score <= 2 ? 'WEAK — ADD UPPERCASE & NUMBERS' : score === 3 ? 'GOOD — ALMOST THERE' : 'STRONG ✓';
+    for (var i = 0; i < score; i++) bars[i].classList.add(cls);
+    hint.textContent = msg;
+    hint.style.color = score === 4 ? 'var(--accent3)' : score === 3 ? 'var(--accent4)' : 'var(--accent2)';
+}
+
+// Init strength meter with existing password value
+(function(){
+    var pw = document.getElementById('password');
+    if (pw && pw.value) checkStrength(pw.value);
+})();
+
+document.querySelectorAll('.toast').forEach(function(t){
+    setTimeout(function(){t.style.opacity='0';},4000);
+    setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},4600);
+});
+</script>
+</body>
+</html>

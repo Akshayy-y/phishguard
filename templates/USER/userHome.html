@@ -1,0 +1,468 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard — Home</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:       #050a0f;
+            --bg-panel:      #08111a;
+            --bg-card:       #0c1823;
+            --bg-hover:      #102030;
+            --border:        #0f3a52;
+            --border-bright: #1a6a8a;
+            --accent:        #00d4ff;
+            --accent2:       #ff3860;
+            --accent3:       #39ff14;
+            --text-primary:  #cde8f5;
+            --text-muted:    #4a7a99;
+            --text-dim:      #2a5a77;
+            --glow:          0 0 24px rgba(0,212,255,0.35);
+            --glow-red:      0 0 24px rgba(255,56,96,0.35);
+            --sidebar-w:     240px;
+            --header-h:      60px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Rajdhani', sans-serif; background: var(--bg-deep); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px); }
+
+        /* PRELOADER */
+        #preloader { position: fixed; inset: 0; z-index: 99999; background: var(--bg-deep); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; transition: opacity 0.6s ease; }
+        #preloader.hide { opacity: 0; pointer-events: none; }
+        .loader-ring { width: 56px; height: 56px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; }
+        .loader-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 3px; animation: blink 1s step-end infinite; }
+        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* TOAST */
+        .toast { position: fixed; top: 24px; right: 24px; z-index: 9997; background: var(--bg-card); border: 1px solid var(--accent); border-radius: 10px; padding: 14px 20px; max-width: 320px; font-size: 13px; color: var(--text-primary); box-shadow: var(--glow); animation: slideIn 0.3s ease; transition: opacity 0.5s; }
+        @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+        /* LAYOUT */
+        #main-wrapper { display: flex; min-height: 100vh; }
+
+        /* ── SIDEBAR ── */
+        .sidebar { width: var(--sidebar-w); min-height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; transition: transform 0.3s ease; }
+        .sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
+        .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #0070ff); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; box-shadow: var(--glow); }
+        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 1px; line-height: 1.2; }
+        .logo-sub  { font-size: 9px; color: var(--text-muted); letter-spacing: 2px; font-family: 'Share Tech Mono', monospace; }
+        .nav-label { padding: 20px 20px 8px; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; }
+        .nav-item  { position: relative; }
+        .nav-link  { display: flex; align-items: center; gap: 12px; padding: 11px 20px; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: all 0.2s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; }
+        .nav-link:hover, .nav-link.active { color: var(--accent); background: rgba(0,212,255,0.06); }
+        .nav-link:hover::before, .nav-link.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); box-shadow: var(--glow); }
+        .nav-icon  { width: 18px; text-align: center; font-size: 16px; }
+        .nav-arrow { margin-left: auto; transition: transform 0.2s; font-size: 10px; }
+        .nav-arrow.open { transform: rotate(90deg); }
+        .nav-sub   { display: none; background: rgba(0,0,0,0.2); }
+        .nav-sub.open { display: block; }
+        .nav-sub a { display: flex; align-items: center; gap: 10px; padding: 9px 20px 9px 50px; color: var(--text-muted); text-decoration: none; font-size: 13px; transition: all 0.2s; }
+        .nav-sub a::before { content: '›'; color: var(--text-dim); }
+        .nav-sub a:hover { color: var(--accent); padding-left: 54px; }
+        .sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); }
+        .sys-status { display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-muted); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); box-shadow: 0 0 6px var(--accent3); animation: pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+        /* ── MAIN ── */
+        .main-content { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; transition: margin-left 0.3s ease; }
+
+        /* ── HEADER ── */
+        .header { height: var(--header-h); background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 50; }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .hamburger { width: 32px; height: 32px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border: 1px solid var(--border); border-radius: 6px; transition: all 0.2s; }
+        .hamburger:hover { border-color: var(--accent); box-shadow: var(--glow); }
+        .hamburger span { width: 14px; height: 1.5px; background: var(--text-muted); transition: all 0.2s; }
+        .hamburger:hover span { background: var(--accent); }
+        .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+        .breadcrumb span { color: var(--accent); font-family: 'Share Tech Mono', monospace; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+
+        /* inbox badge */
+        .inbox-btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); text-decoration: none; font-size: 12px; font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; transition: all 0.2s; }
+        .inbox-btn:hover { border-color: var(--accent); color: var(--accent); box-shadow: var(--glow); }
+
+        /* user avatar dropdown */
+        .dropdown { position: relative; }
+        .user-pill { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px 12px 4px 4px; border-radius: 40px; border: 1px solid var(--border); transition: all 0.2s; background: var(--bg-card); }
+        .user-pill:hover { border-color: var(--accent); box-shadow: var(--glow); }
+        .user-photo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-bright); }
+        .user-photo-fallback { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #0070ff); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #000; font-family: 'Orbitron', sans-serif; }
+        .user-info-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .user-info-role { font-size: 9px; color: var(--text-muted); font-family: 'Share Tech Mono', monospace; }
+        .dropdown-menu { position: absolute; right: 0; top: calc(100% + 8px); background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: 12px; min-width: 180px; box-shadow: 0 20px 60px rgba(0,0,0,0.6), var(--glow); opacity: 0; pointer-events: none; transform: translateY(-8px); transition: all 0.2s; z-index: 200; padding: 6px; }
+        .dropdown.open .dropdown-menu { opacity: 1; pointer-events: all; transform: translateY(0); }
+        .dd-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; cursor: pointer; transition: background 0.2s; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+        .dd-item:hover { background: var(--bg-hover); color: var(--accent); }
+        .dd-item-icon { font-size: 15px; }
+        .dd-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+        /* ── PAGE BODY ── */
+        .page-body {
+            flex: 1; position: relative; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* animated grid */
+        .page-grid {
+            position: absolute; inset: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridshift 30s linear infinite;
+        }
+        @keyframes gridshift { to { background-position: 60px 60px; } }
+
+        /* orbs */
+        .orb { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(100px); }
+        .orb-1 { width: 600px; height: 600px; background: rgba(0,212,255,0.06); top: -200px; right: -100px; animation: orbf 16s ease-in-out infinite; }
+        .orb-2 { width: 500px; height: 500px; background: rgba(255,56,96,0.04); bottom: -150px; left: -100px; animation: orbf 20s ease-in-out infinite reverse; }
+        @keyframes orbf { 0%,100%{transform:translate(0,0);}50%{transform:translate(30px,-30px);} }
+
+        /* HERO */
+        .hero-wrap {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 60px 40px; position: relative; z-index: 2; text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 20px; margin-bottom: 28px;
+            background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2);
+            font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; color: var(--accent);
+            animation: fadeup 0.6s ease both;
+        }
+        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); box-shadow: 0 0 8px var(--accent3); animation: pulse 2s ease infinite; }
+
+        .hero-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(28px, 5vw, 54px); font-weight: 900; line-height: 1.1;
+            color: var(--text-primary); margin-bottom: 18px;
+            animation: fadeup 0.6s ease 0.1s both;
+        }
+        .hero-title .hl  { color: var(--accent);  text-shadow: 0 0 40px rgba(0,212,255,0.5); }
+        .hero-title .hl2 { color: var(--accent2); text-shadow: 0 0 40px rgba(255,56,96,0.4); }
+
+        .hero-sub {
+            font-size: 16px; color: var(--text-muted); line-height: 1.7;
+            max-width: 500px; margin: 0 auto 40px;
+            animation: fadeup 0.6s ease 0.2s both;
+        }
+
+        /* QUICK ACTIONS */
+        .quick-actions {
+            display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+            animation: fadeup 0.6s ease 0.3s both;
+            margin-bottom: 48px;
+        }
+        .qa-btn {
+            display: flex; align-items: center; gap: 10px;
+            padding: 13px 26px; border-radius: 10px; text-decoration: none;
+            font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: 1px;
+            transition: all 0.25s; border: 1px solid transparent; position: relative; overflow: hidden;
+        }
+        .qa-btn::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);transform:translateX(-100%);transition:transform 0.4s; }
+        .qa-btn:hover::before { transform:translateX(100%); }
+        .qa-btn-primary { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: var(--glow); }
+        .qa-btn-primary:hover { background: #33ddff; transform: translateY(-3px); box-shadow: 0 0 50px rgba(0,212,255,0.5), 0 10px 28px rgba(0,0,0,0.3); }
+        .qa-btn-ghost { background: transparent; color: var(--text-primary); border-color: var(--border-bright); }
+        .qa-btn-ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-3px); box-shadow: var(--glow); }
+        .qa-btn-red { background: rgba(255,56,96,0.1); color: var(--accent2); border-color: rgba(255,56,96,0.3); }
+        .qa-btn-red:hover { background: rgba(255,56,96,0.18); transform: translateY(-3px); box-shadow: var(--glow-red); border-color: var(--accent2); }
+
+        /* FEATURE CARDS */
+        .feature-row {
+            display: grid; grid-template-columns: repeat(3,1fr); gap: 16px;
+            max-width: 720px; margin: 0 auto;
+            animation: fadeup 0.6s ease 0.4s both;
+        }
+        .feat-card {
+            background: rgba(12,24,35,0.7); border: 1px solid var(--border);
+            border-radius: 14px; padding: 22px 20px;
+            text-align: left; transition: all 0.3s; position: relative; overflow: hidden;
+            backdrop-filter: blur(8px);
+        }
+        .feat-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--fc,var(--accent)),transparent); }
+        .feat-card:hover { border-color: var(--border-bright); transform: translateY(-3px); box-shadow: 0 10px 36px rgba(0,0,0,0.4); }
+        .feat-card.f2 { --fc: var(--accent2); }
+        .feat-card.f3 { --fc: var(--accent3); }
+        .feat-icon { font-size: 24px; margin-bottom: 12px; }
+        .feat-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text-primary); margin-bottom: 6px; }
+        .feat-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+        @keyframes fadeup { from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);} }
+
+        /* FOOTER */
+        .footer { padding: 14px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; position: relative; z-index: 2; }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px)  { .feature-row { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 640px)  {
+            .sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); }
+            .sidebar.mobile-open { transform: none; }
+            .main-content { margin-left: 0 !important; }
+            .feature-row { grid-template-columns: 1fr; }
+            .hero-wrap { padding: 40px 20px; }
+            .quick-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PRELOADER -->
+<div id="preloader">
+    <div class="loader-ring"></div>
+    <div class="loader-label">LOADING...</div>
+</div>
+
+<!-- DJANGO MESSAGES -->
+{% if messages %}
+{% for message in messages %}
+<div class="toast">✓ {{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div id="main-wrapper">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">🛡</div>
+            <div>
+                <div class="logo-text">PhishGuard</div>
+                <div class="logo-sub">USER PORTAL</div>
+            </div>
+        </div>
+
+        <div class="nav-label">Dashboard</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link active" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚡</span> Dashboard <span class="nav-arrow open">›</span>
+                </button>
+                <div class="nav-sub open">
+                    <a href="/userHome" style="color:var(--accent);">🏠 Home</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="nav-label">Email</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">✉</span> Email <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub">
+                    <a href="/inbox">📥 Inbox</a>
+                    <a href="/drafts">📝 Drafts</a>
+                    <a href="/compose">✏ Compose</a>
+                    <a href="/outBox">📤 Outbox</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="nav-label">More</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚙</span> Settings <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub">
+                    <a href="/viewProfile">👤 Profile</a>
+                    <a href="/addFeedback">💬 Feedback</a>
+                    <a href="/blockedUsers">🚫 Blocked Users</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sys-status">
+                <div class="status-dot"></div>
+                <span>PROTECTION ACTIVE</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <div class="main-content" id="mainContent">
+
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-left">
+                <div class="hamburger" onclick="toggleSidebar()">
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="breadcrumb">
+                    <span>PhishGuard</span> › <span>Home</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <a href="/inbox" class="inbox-btn">📥 INBOX</a>
+
+                <div class="dropdown" id="ddUser">
+                    <div class="user-pill" onclick="toggleDD('ddUser')">
+                        <img src="/static/media/{{ image }}" class="user-photo" alt="profile"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                        <div class="user-photo-fallback" style="display:none;">U</div>
+                        <div>
+                            <div class="user-info-name">My Account</div>
+                            <div class="user-info-role">USER</div>
+                        </div>
+                        <span style="color:var(--text-dim);font-size:10px;margin-left:2px;">▾</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="/viewProfile" class="dd-item">
+                            <span class="dd-item-icon">👤</span> Profile
+                        </a>
+                        <a href="/inbox" class="dd-item">
+                            <span class="dd-item-icon">📥</span> Inbox
+                        </a>
+                        <div class="dd-divider"></div>
+                        <a href="/login" class="dd-item" style="color:var(--accent2);">
+                            <span class="dd-item-icon">🔑</span> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE BODY -->
+        <div class="page-body">
+            <div class="page-grid"></div>
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+
+            <div class="hero-wrap">
+
+                <div class="hero-badge">
+                    <div class="badge-dot"></div>
+                    AI PROTECTION ACTIVE
+                </div>
+
+                <h1 class="hero-title">
+                    Your <span class="hl">Secure</span> Email<br>
+                    <span class="hl2">Shield</span> Is On
+                </h1>
+
+                <p class="hero-sub">
+                    Every email is evaluated in real time using a trained detection model. Potential phishing content is identified and flagged to enhance user security.
+                </p>
+
+                <!-- QUICK ACTIONS -->
+                <div class="quick-actions">
+                    <a href="/compose" class="qa-btn qa-btn-primary">
+                        ✏ &nbsp;COMPOSE EMAIL
+                    </a>
+                    <a href="/inbox" class="qa-btn qa-btn-ghost">
+                        📥 &nbsp;VIEW INBOX
+                    </a>
+                    <a href="/drafts" class="qa-btn qa-btn-ghost">
+                        📝 &nbsp;DRAFTS
+                    </a>
+                    <a href="/addFeedback" class="qa-btn qa-btn-red">
+                        💬 &nbsp;FEEDBACK
+                    </a>
+                </div>
+
+                <!-- FEATURE MINI CARDS -->
+                <div class="feature-row">
+                    <div class="feat-card">
+                        <div class="feat-icon">🤖</div>
+                        <div class="feat-title">EMAIL ANALYSIS</div>
+                        <div class="feat-desc">Email content is analyzed using a machine learning model during sending to detect potential phishing patterns.</div>
+                    </div>
+                    <div class="feat-card f2">
+                        <div class="feat-icon">🚫</div>
+                        <div class="feat-title">AUTO BLOCK PROTECTION</div>
+                        <div class="feat-desc"> Senders of detected phishing emails are automatically blocked to prevent further threats to your inbox.</div>
+                    </div>
+                    <div class="feat-card f3">
+                        <div class="feat-icon">🔒</div>
+                        <div class="feat-title">SECURE DRAFTS</div>
+                        <div class="feat-desc">Save emails as drafts and send them when you're ready — fully protected.</div>
+                    </div>
+                </div>
+
+            </div>
+        </div><!-- /page-body -->
+
+        <footer class="footer">
+            <span>© 2026 PHISHING EMAIL DETECTION SYSTEM</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <div class="status-dot"></div>
+                <span>SYSTEM OPERATIONAL</span>
+            </div>
+        </footer>
+    </div><!-- /main-content -->
+
+</div><!-- /main-wrapper -->
+
+<script>
+// PRELOADER
+window.addEventListener('load', function () {
+    setTimeout(function () { document.getElementById('preloader').classList.add('hide'); }, 700);
+});
+
+// SIDEBAR TOGGLE
+var sidebarOpen = true;
+function toggleSidebar() {
+    var s = document.getElementById('sidebar');
+    var m = document.getElementById('mainContent');
+    sidebarOpen = !sidebarOpen;
+    if (window.innerWidth <= 640) {
+        s.classList.toggle('mobile-open', sidebarOpen);
+    } else {
+        s.classList.toggle('collapsed', !sidebarOpen);
+        m.style.marginLeft = sidebarOpen ? '' : '0';
+    }
+}
+
+// NAV ACCORDION
+function toggleNav(btn) {
+    var sub   = btn.nextElementSibling;
+    var arrow = btn.querySelector('.nav-arrow');
+    var isOpen = sub.classList.contains('open');
+    document.querySelectorAll('.nav-sub.open').forEach(function (s) {
+        s.classList.remove('open');
+        var p = s.previousElementSibling;
+        if (p) { var a = p.querySelector('.nav-arrow'); if (a) a.classList.remove('open'); p.classList.remove('active'); }
+    });
+    if (!isOpen) {
+        sub.classList.add('open');
+        if (arrow) arrow.classList.add('open');
+        btn.classList.add('active');
+    } else {
+        btn.classList.remove('active');
+    }
+}
+
+// DROPDOWN
+function toggleDD(id) {
+    var el = document.getElementById(id);
+    var was = el.classList.contains('open');
+    document.querySelectorAll('.dropdown.open').forEach(function (d) { d.classList.remove('open'); });
+    if (!was) el.classList.add('open');
+}
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown.open').forEach(function (d) { d.classList.remove('open'); });
+    }
+});
+
+// AUTO-DISMISS TOASTS
+document.querySelectorAll('.toast').forEach(function (t) {
+    setTimeout(function () { t.style.opacity = '0'; }, 4000);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4600);
+});
+</script>
+
+</body>
+</html>

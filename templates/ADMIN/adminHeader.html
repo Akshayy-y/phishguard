@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Phishing Email Detection System</title>
+
+<link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+
+<link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+</head>
+
+<body>
+
+{% if messages %}
+{% for message in messages %}
+<script>
+alert("{{ message }}")
+</script>
+{% endfor %}
+{% endif %}
+
+<div id="main-wrapper">
+
+<!-- NAV HEADER -->
+<div class="nav-header">
+<div class="brand-logo">
+<a href="/adminHome">
+<span class="brand-title">
+<p style="color:white;font-size:20px;font-weight:bold;">
+PHISHING EMAIL
+</p>
+</span>
+</a>
+</div>
+</div>
+
+
+<!-- HEADER -->
+<div class="header">
+<div class="header-content clearfix">
+
+<div class="nav-control">
+<div class="hamburger">
+<span class="toggle-icon"><i class="icon-menu"></i></span>
+</div>
+</div>
+
+<div class="header-right">
+<ul class="clearfix">
+
+<li class="icons dropdown">
+<div class="user-img c-pointer position-relative" data-toggle="dropdown">
+<img src="{% static 'images/user/1.png' %}" height="40" width="40">
+</div>
+
+<div class="drop-down dropdown-profile dropdown-menu">
+<div class="dropdown-content-body">
+<ul>
+<li>
+<a href="/login">
+<i class="icon-key"></i>
+<span>Logout</span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+
+</li>
+
+</ul>
+</div>
+
+</div>
+</div>
+
+
+<!-- SIDEBAR -->
+<div class="nk-sidebar">
+<div class="nk-nav-scroll">
+
+<ul class="metismenu" id="menu">
+
+<li class="nav-label">Dashboard</li>
+
+<li>
+<a href="/adminHome">
+<i class="icon-speedometer menu-icon"></i>
+<span class="nav-text">Home</span>
+</a>
+</li>
+
+<li class="nav-label">Management</li>
+
+<li>
+<a href="/viewUsers">
+<i class="icon-people menu-icon"></i>
+<span class="nav-text">Users</span>
+</a>
+</li>
+
+<li>
+<a href="/viewFeedbacks">
+<i class="icon-bubbles menu-icon"></i>
+<span class="nav-text">Feedbacks</span>
+</a>
+</li>
+
+<li>
+<a href="/adminBlockedUsers/">
+<i class="icon-lock menu-icon"></i>
+<span class="nav-text">Blocked Users</span>
+</a>
+</li>
+
+</ul>
+
+</div>
+</div>
+
+
+<!-- PAGE CONTENT -->
+{% block header %}
+<div class="content-body"></div>
+{% endblock %}
+
+
+<!-- FOOTER -->
+<div class="footer">
+<div class="copyright">
+<p>Phishing Email Detection System © 2026</p>
+</div>
+</div>
+
+</div>
+
+
+<!-- SCRIPTS -->
+
+<script src="{% static 'plugins/common/common.min.js' %}"></script>
+<script src="{% static 'js/custom.min.js' %}"></script>
+<script src="{% static 'js/settings.js' %}"></script>
+<script src="{% static 'js/gleek.js' %}"></script>
+
+</body>
+
+</html>

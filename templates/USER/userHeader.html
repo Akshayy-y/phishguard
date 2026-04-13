@@ -1,0 +1,225 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="{% static 'plugins/pg-calendar/css/pignose.calendar.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'plugins/chartist/css/chartist.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugins/chartist-plugin-tooltips/css/chartist-plugin-tooltip.css' %}">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    <style>
+        /* Toast instead of alert() */
+        .pg-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 99999;
+            background: #0c1823;
+            border: 1px solid #00d4ff;
+            border-radius: 10px;
+            padding: 14px 20px;
+            max-width: 320px;
+            font-size: 13px;
+            color: #cde8f5;
+            box-shadow: 0 0 20px rgba(0,212,255,0.3);
+            animation: pgSlideIn 0.3s ease;
+            transition: opacity 0.5s;
+            font-family: sans-serif;
+        }
+        .pg-toast.err { border-color: #ff3860; box-shadow: 0 0 20px rgba(255,56,96,0.3); }
+        @keyframes pgSlideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+    </style>
+</head>
+
+<body>
+
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="loader">
+            <svg class="circular" viewBox="25 25 50 50">
+                <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Django messages as toasts (not alert) -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="pg-toast {% if 'error' in message.tags or 'block' in message|lower %}err{% endif %}"
+         id="pgt{{ forloop.counter }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div id="main-wrapper">
+
+        <!-- NAV HEADER -->
+        <div class="nav-header">
+            <div class="brand-logo">
+                <a href="/userHome">
+                    <b class="logo-abbr">PE</b>
+                    <span class="logo-compact">PE</span>
+                    <span class="brand-title">
+                        <p style="color:white;font-size:larger;font-weight:bolder;">PHISHING E-MAIL</p>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-content clearfix">
+                <div class="nav-control">
+                    <div class="hamburger">
+                        <span class="toggle-icon"><i class="icon-menu"></i></span>
+                    </div>
+                </div>
+                <div class="header-left">
+                    <div class="input-group icons"></div>
+                </div>
+                <div class="header-right">
+                    <ul class="clearfix">
+                        <li class="icons dropdown d-none d-md-flex">
+                            <a href="javascript:void(0)" class="log-user" data-toggle="dropdown">
+                                <span>English</span>
+                                <i class="fa fa-angle-down f-s-14" aria-hidden="true"></i>
+                            </a>
+                            <div class="drop-down dropdown-language animated fadeIn dropdown-menu">
+                                <div class="dropdown-content-body">
+                                    <ul><li><a href="javascript:void()">English</a></li></ul>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="icons dropdown">
+                            <div class="user-img c-pointer position-relative" data-toggle="dropdown">
+                                <span class="activity active"></span>
+                                <!-- FIXED: was "static/media/..." missing leading slash -->
+                                <img src="/static/media/{{ image }}" height="40" width="40" alt=""
+                                     onerror="this.onerror=null;this.src='/static/images/user/1.png'">
+                            </div>
+                            <div class="drop-down dropdown-profile animated fadeIn dropdown-menu">
+                                <div class="dropdown-content-body">
+                                    <ul>
+                                        <li>
+                                            <a href="/viewProfile">
+                                                <i class="icon-user"></i> <span>Profile</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="/inbox">
+                                                <i class="icon-envelope-open"></i> <span>Inbox</span>
+                                                <div class="badge gradient-3 badge-pill gradient-1">{{ count|default:0 }}</div>
+                                            </a>
+                                        </li>
+                                        <hr class="my-2">
+                                        <li>
+                                            <a href="/login"><i class="icon-key"></i> <span>Logout</span></a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div class="nk-sidebar">
+            <div class="nk-nav-scroll">
+                <ul class="metismenu" id="menu">
+
+                    <li class="nav-label">Dashboard</li>
+                    <li>
+                        <a class="has-arrow" href="javascript:void()" aria-expanded="false">
+                            <i class="icon-speedometer menu-icon"></i>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+                        <ul aria-expanded="false">
+                            <li><a href="/userHome">Home</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-label">Apps</li>
+                    <li>
+                        <a class="has-arrow" href="javascript:void()" aria-expanded="false">
+                            <i class="icon-envelope menu-icon"></i>
+                            <span class="nav-text">Email</span>
+                        </a>
+                        <ul aria-expanded="false">
+                            <li><a href="/inbox">Inbox</a></li>
+                            <li><a href="/drafts">Drafts</a></li>
+                            <li><a href="/compose">Compose</a></li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <a class="has-arrow" href="javascript:void()" aria-expanded="false">
+                            <i class="icon-screen-tablet menu-icon"></i>
+                            <span class="nav-text">More</span>
+                        </a>
+                        <ul aria-expanded="false">
+                            <li><a href="/addFeedback">Feedback</a></li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <a href="/blockedUsers">
+                            <i class="icon-ban menu-icon"></i>
+                            <span class="nav-text">Blocked Users</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </div>
+        </div>
+
+        {% block header %}
+        <div class="content-body"></div>
+        {% endblock %}
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <div class="copyright">
+                <p>Phishing Email Detection System 2026</p>
+            </div>
+        </div>
+
+    </div><!-- /main-wrapper -->
+
+    <!-- SCRIPTS -->
+    <script src="{% static 'plugins/common/common.min.js' %}"></script>
+    <script src="{% static 'js/custom.min.js' %}"></script>
+    <script src="{% static 'js/settings.js' %}"></script>
+    <script src="{% static 'js/gleek.js' %}"></script>
+    <script src="{% static 'js/styleSwitcher.js' %}"></script>
+    <!-- FIXED: broken static tag was: {% static 'plugins/chart.js' %}/Chart.bundle.min.js' %} -->
+    <script src="{% static 'plugins/chart.js/Chart.bundle.min.js' %}"></script>
+    <script src="{% static 'plugins/circle-progress/circle-progress.min.js' %}"></script>
+    <script src="{% static 'plugins/d3v3/index.js' %}"></script>
+    <script src="{% static 'plugins/topojson/topojson.min.js' %}"></script>
+    <script src="{% static 'plugins/datamaps/datamaps.world.min.js' %}"></script>
+    <script src="{% static 'plugins/raphael/raphael.min.js' %}"></script>
+    <script src="{% static 'plugins/morris/morris.min.js' %}"></script>
+    <script src="{% static 'plugins/moment/moment.min.js' %}"></script>
+    <script src="{% static 'plugins/pg-calendar/pignose.calendar.min.js' %}"></script>
+    <script src="{% static 'plugins/chartist/chartist.min.js' %}"></script>
+    <script src="{% static 'plugins/chartist-plugin-tooltips/chartist-plugin-tooltip.min.js' %}"></script>
+    <script src="{% static 'js/dashboard/dashboard-1.js' %}"></script>
+
+    <!-- Auto-dismiss toasts -->
+    <script>
+    document.querySelectorAll('.pg-toast').forEach(function(t) {
+        setTimeout(function() { t.style.opacity = '0'; }, 4000);
+        setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 4600);
+    });
+    </script>
+
+</body>
+</html>

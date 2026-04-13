@@ -1,0 +1,474 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard — Phishing Email Detection</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:    #050a0f;
+            --bg-panel:   #08111a;
+            --bg-card:    #0c1823;
+            --border:     #0f3a52;
+            --border-bright: #1a6a8a;
+            --accent:     #00d4ff;
+            --accent2:    #ff3860;
+            --accent3:    #39ff14;
+            --text-primary: #cde8f5;
+            --text-muted: #4a7a99;
+            --text-dim:   #2a5a77;
+            --glow:       0 0 30px rgba(0,212,255,0.35);
+            --glow2:      0 0 30px rgba(255,56,96,0.3);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* scanlines */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+        }
+
+        /* ── PRELOADER ── */
+        #preloader {
+            position: fixed; inset: 0; z-index: 99999;
+            background: var(--bg-deep);
+            display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+            transition: opacity 0.6s ease;
+        }
+        #preloader.hide { opacity: 0; pointer-events: none; }
+        .loader-ring { width: 64px; height: 64px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; }
+        .loader-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 3px; animation: blink 1s step-end infinite; }
+        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* ── NAVBAR ── */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 40px;
+            background: rgba(5,10,15,0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .navbar.scrolled { background: rgba(8,17,26,0.97); box-shadow: 0 4px 30px rgba(0,0,0,0.5); }
+        .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .nav-brand-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent), #0070ff);
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 18px; box-shadow: var(--glow);
+        }
+        .nav-brand-text { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+        .nav-brand-sub  { font-size: 9px; color: var(--text-muted); letter-spacing: 2px; font-family: 'Share Tech Mono', monospace; }
+        .nav-links { display: flex; align-items: center; gap: 8px; }
+        .nav-btn {
+            padding: 8px 20px; border-radius: 8px; font-family: 'Rajdhani', sans-serif;
+            font-size: 14px; font-weight: 600; letter-spacing: 1px; text-decoration: none;
+            transition: all 0.2s; cursor: pointer; border: 1px solid transparent;
+        }
+        .nav-btn-ghost { color: var(--text-muted); border-color: var(--border); background: transparent; }
+        .nav-btn-ghost:hover { color: var(--accent); border-color: var(--accent); box-shadow: var(--glow); }
+        .nav-btn-solid {
+            color: #000; background: var(--accent);
+            border-color: var(--accent); font-weight: 700;
+            box-shadow: var(--glow);
+        }
+        .nav-btn-solid:hover { background: #33ddff; transform: translateY(-1px); box-shadow: 0 0 40px rgba(0,212,255,0.5); }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; padding: 100px 40px 60px;
+        }
+
+        /* animated grid bg */
+        .hero-grid {
+            position: absolute; inset: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridshift 20s linear infinite;
+        }
+        @keyframes gridshift { to { background-position: 60px 60px; } }
+
+        /* glowing orbs */
+        .hero-orb {
+            position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px);
+        }
+        .hero-orb-1 { width: 500px; height: 500px; background: rgba(0,212,255,0.07); top: -100px; left: -100px; animation: orbfloat 12s ease-in-out infinite; }
+        .hero-orb-2 { width: 400px; height: 400px; background: rgba(255,56,96,0.06); bottom: -80px; right: -80px; animation: orbfloat 16s ease-in-out infinite reverse; }
+        .hero-orb-3 { width: 300px; height: 300px; background: rgba(57,255,20,0.04); top: 50%; right: 20%; animation: orbfloat 10s ease-in-out infinite 4s; }
+        @keyframes orbfloat { 0%,100% { transform: translate(0,0); } 50% { transform: translate(30px, -30px); } }
+
+        .hero-content {
+            position: relative; z-index: 2;
+            max-width: 800px; text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 20px; margin-bottom: 28px;
+            background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.25);
+            font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px; color: var(--accent);
+            animation: fadeslide 0.8s ease both;
+        }
+        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); box-shadow: 0 0 8px var(--accent3); animation: pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+        .hero-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(32px, 6vw, 64px);
+            font-weight: 900;
+            line-height: 1.1;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            animation: fadeslide 0.8s ease 0.1s both;
+        }
+        .hero-title .hl { color: var(--accent); text-shadow: 0 0 40px rgba(0,212,255,0.5); }
+        .hero-title .hl2 { color: var(--accent2); text-shadow: 0 0 40px rgba(255,56,96,0.4); }
+
+        .hero-sub {
+            font-size: 18px; color: var(--text-muted); line-height: 1.7;
+            max-width: 560px; margin: 0 auto 40px;
+            animation: fadeslide 0.8s ease 0.2s both;
+        }
+
+        .hero-actions {
+            display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;
+            animation: fadeslide 0.8s ease 0.3s both;
+        }
+        .btn-hero-primary {
+            padding: 14px 36px; border-radius: 10px;
+            background: var(--accent); color: #000;
+            font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px;
+            text-decoration: none; transition: all 0.25s;
+            box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .btn-hero-primary:hover { background: #33ddff; transform: translateY(-3px); box-shadow: 0 0 50px rgba(0,212,255,0.55), 0 12px 30px rgba(0,0,0,0.3); }
+        .btn-hero-secondary {
+            padding: 14px 36px; border-radius: 10px;
+            background: transparent; color: var(--text-primary);
+            font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 2px;
+            text-decoration: none; transition: all 0.25s;
+            border: 1px solid var(--border-bright);
+        }
+        .btn-hero-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-3px); box-shadow: var(--glow); }
+
+        /* ── STATS BAR ── */
+        .stats-bar {
+            position: relative; z-index: 2;
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; margin-top: 60px;
+            background: rgba(12,24,35,0.8); border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden; backdrop-filter: blur(10px);
+            animation: fadeslide 0.8s ease 0.4s both;
+            max-width: 640px; margin-left: auto; margin-right: auto;
+        }
+        .stat-item {
+            flex: 1; padding: 20px 24px; text-align: center;
+            border-right: 1px solid var(--border);
+        }
+        .stat-item:last-child { border-right: none; }
+        .stat-num { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; color: var(--accent); }
+        .stat-lbl { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 1px; margin-top: 4px; }
+
+        @keyframes fadeslide { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ── FEATURES ── */
+        .features {
+            padding: 100px 40px;
+            background: linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-panel) 50%, var(--bg-deep) 100%);
+        }
+        .section-label {
+            text-align: center; margin-bottom: 16px;
+            font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 3px;
+            color: var(--accent); text-transform: uppercase;
+        }
+        .section-title {
+            text-align: center; margin-bottom: 60px;
+            font-family: 'Orbitron', sans-serif; font-size: clamp(22px, 4vw, 36px); font-weight: 700;
+            color: var(--text-primary);
+        }
+        .section-title span { color: var(--accent); }
+
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 0 auto; }
+
+        .feature-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 28px 24px;
+            position: relative; overflow: hidden; transition: all 0.3s;
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--fc, var(--accent)), transparent);
+        }
+        .feature-card:hover { border-color: var(--border-bright); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+        .feature-card.f2 { --fc: var(--accent2); }
+        .feature-card.f3 { --fc: var(--accent3); }
+        .feature-card.f4 { --fc: #ff8c00; }
+        .feature-card.f5 { --fc: #a855f7; }
+        .feature-card.f6 { --fc: var(--accent); }
+
+        .feat-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; margin-bottom: 16px;
+            background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.15);
+        }
+        .feature-card.f2 .feat-icon { background: rgba(255,56,96,0.08); border-color: rgba(255,56,96,0.15); }
+        .feature-card.f3 .feat-icon { background: rgba(57,255,20,0.08); border-color: rgba(57,255,20,0.15); }
+        .feature-card.f4 .feat-icon { background: rgba(255,140,0,0.08); border-color: rgba(255,140,0,0.15); }
+        .feature-card.f5 .feat-icon { background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.15); }
+
+        .feat-title { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--text-primary); margin-bottom: 10px; }
+        .feat-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+        /* ── CTA ── */
+        .cta-section {
+            padding: 100px 40px;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .cta-section::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at center, rgba(0,212,255,0.06) 0%, transparent 70%);
+        }
+        .cta-box {
+            position: relative; z-index: 2;
+            max-width: 600px; margin: 0 auto;
+            background: var(--bg-card); border: 1px solid var(--border-bright);
+            border-radius: 20px; padding: 56px 48px;
+            box-shadow: var(--glow), 0 30px 80px rgba(0,0,0,0.5);
+        }
+        .cta-box::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        .cta-title {
+            font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900;
+            color: var(--text-primary); margin-bottom: 16px;
+        }
+        .cta-title span { color: var(--accent); }
+        .cta-sub { font-size: 15px; color: var(--text-muted); margin-bottom: 36px; line-height: 1.6; }
+        .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+        /* ── FOOTER ── */
+        .site-footer {
+            padding: 28px 40px;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim);
+        }
+        .footer-status { display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); box-shadow: 0 0 6px var(--accent3); animation: pulse 2s ease infinite; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; top: 80px; right: 24px; z-index: 9997;
+            background: var(--bg-card); border: 1px solid var(--accent);
+            border-radius: 10px; padding: 14px 20px; max-width: 320px;
+            font-size: 13px; color: var(--text-primary);
+            box-shadow: var(--glow); animation: fadeslide 0.3s ease;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) { .features-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 600px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .navbar { padding: 0 20px; }
+            .hero { padding: 90px 20px 50px; }
+            .features, .cta-section { padding: 60px 20px; }
+            .cta-box { padding: 36px 24px; }
+            .site-footer { flex-direction: column; gap: 10px; text-align: center; }
+            .nav-brand-sub { display: none; }
+            .stats-bar { flex-direction: column; }
+            .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+            .stat-item:last-child { border-bottom: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PRELOADER -->
+<div id="preloader">
+    <div class="loader-ring"></div>
+    <div class="loader-label">INITIALIZING...</div>
+</div>
+
+<!-- DJANGO MESSAGES -->
+{% if messages %}
+{% for message in messages %}
+<div class="toast">⚠ {{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+    <a href="/" class="nav-brand">
+        <div class="nav-brand-icon">🛡</div>
+        <div>
+            <div class="nav-brand-text">PhishGuard</div>
+            <div class="nav-brand-sub">DETECTION SYSTEM</div>
+        </div>
+    </a>
+    <div class="nav-links">
+        <a href="/login"    class="nav-btn nav-btn-ghost">Login</a>
+        <a href="/register" class="nav-btn nav-btn-solid">Get Started</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+
+    <div class="hero-content">
+        <div class="hero-badge">
+            <div class="badge-dot"></div>
+            AI-POWERED PROTECTION · ACTIVE
+        </div>
+
+        <h1 class="hero-title">
+            Detect <span class="hl">Phishing</span><br>
+            Before It Detects <span class="hl2">You</span>
+        </h1>
+
+        <p class="hero-sub">
+            An intelligent email security system that uses machine learning to identify and block phishing attempts in real time — keeping your inbox safe.
+        </p>
+
+        <div class="hero-actions">
+            <a href="/register" class="btn-hero-primary">GET STARTED</a>
+            <a href="/login"    class="btn-hero-secondary">SIGN IN</a>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-num">99.2% </div>
+                <div class="stat-lbl">ACCURACY</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">&lt; 0.3s</div>
+                <div class="stat-lbl">SCAN TIME</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-num">24/7</div>
+                <div class="stat-lbl">PROTECTION</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+    <div class="section-label">CAPABILITIES</div>
+    <h2 class="section-title">How <span>PhishGuard</span> Works</h2>
+
+    <div class="features-grid">
+
+        <div class="feature-card">
+            <div class="feat-icon">🤖</div>
+            <div class="feat-title">AI DETECTION</div>
+            <div class="feat-desc">Our ML model analyses every email in real time, classifying it as safe or phishing with high confidence.</div>
+        </div>
+
+        <div class="feature-card f2">
+            <div class="feat-icon">🚫</div>
+            <div class="feat-title">AUTO BLOCK PROTECTION</div>
+            <div class="feat-desc"> Senders of detected phishing emails are automatically blocked to prevent repeated threats. </div>
+        </div>
+
+        <div class="feature-card f3">
+            <div class="feat-icon">📧</div>
+            <div class="feat-title">SECURE INBOX</div>
+            <div class="feat-desc">Compose, send, draft and manage emails within a fully sandboxed environment with threat scoring.</div>
+        </div>
+
+        <div class="feature-card f4">
+            <div class="feat-icon">📊</div>
+            <div class="feat-title">SENTIMENT ANALYSIS</div>
+            <div class="feat-desc">VADER sentiment scoring flags urgency and negative-emotion patterns commonly used in social engineering attacks.</div>
+        </div>
+
+        <div class="feature-card f5">
+            <div class="feat-icon">🔗</div>
+            <div class="feat-title">URL SCANNING</div>
+            <div class="feat-desc">Email content is cross-referenced against a database of known phishing URLs for additional threat detection.</div>
+        </div>
+
+        <div class="feature-card f6">
+            <div class="feat-icon">🛡</div>
+            <div class="feat-title">USER CONTROL</div>
+            <div class="feat-desc">Manually block or unblock senders, manage your profile, and review all flagged messages at any time.</div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+    <div class="cta-box">
+        <div class="cta-title">Ready to Stay <span>Safe?</span></div>
+        <p class="cta-sub">Create a free account and start scanning your emails for phishing threats today. Setup takes under a minute.</p>
+        <div class="cta-btns">
+            <a href="/register" class="btn-hero-primary">CREATE ACCOUNT</a>
+            <a href="/login"    class="btn-hero-secondary">SIGN IN</a>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+    <div class="footer-status">
+        <div class="status-dot"></div>
+        {{ phishing_count }} phishing emails detected and blocked automatically.
+        <span></span>
+    </div>
+    <span>© 2026 PHISHING EMAIL DETECTION SYSTEM</span>
+    <span>ENGINE v3.1.0</span>
+</footer>
+
+<script>
+// PRELOADER
+window.addEventListener('load', function () {
+    setTimeout(function () {
+        document.getElementById('preloader').classList.add('hide');
+    }, 700);
+});
+
+// NAVBAR SCROLL EFFECT
+window.addEventListener('scroll', function () {
+    var nav = document.getElementById('navbar');
+    if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+});
+
+// AUTO-DISMISS TOASTS
+document.querySelectorAll('.toast').forEach(function (t) {
+    setTimeout(function () { t.style.opacity = '0'; t.style.transition = 'opacity 0.5s'; }, 4000);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4600);
+});
+</script>
+
+</body>
+</html>

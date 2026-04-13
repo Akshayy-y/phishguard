@@ -1,0 +1,492 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard — Register</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:       #050a0f;
+            --bg-panel:      #08111a;
+            --bg-card:       #0c1823;
+            --border:        #0f3a52;
+            --border-bright: #1a6a8a;
+            --accent:        #00d4ff;
+            --accent2:       #ff3860;
+            --accent3:       #39ff14;
+            --text-primary:  #cde8f5;
+            --text-muted:    #4a7a99;
+            --text-dim:      #2a5a77;
+            --glow:          0 0 30px rgba(0,212,255,0.35);
+            --glow-red:      0 0 30px rgba(255,56,96,0.3);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 40px 20px 60px;
+            overflow-x: hidden;
+        }
+
+        /* scanlines */
+        body::before {
+            content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+        }
+
+        /* animated grid */
+        .bg-grid {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridshift 25s linear infinite;
+        }
+        @keyframes gridshift { to { background-position: 60px 60px; } }
+
+        /* orbs */
+        .orb { position: fixed; border-radius: 50%; pointer-events: none; filter: blur(90px); z-index: 0; }
+        .orb-1 { width: 500px; height: 500px; background: rgba(0,212,255,0.05); top: -150px; left: -150px; animation: orbf 14s ease-in-out infinite; }
+        .orb-2 { width: 400px; height: 400px; background: rgba(57,255,20,0.04); bottom: -100px; right: -100px; animation: orbf 18s ease-in-out infinite reverse; }
+        @keyframes orbf { 0%,100% { transform:translate(0,0); } 50% { transform:translate(30px,-30px); } }
+
+        /* PRELOADER */
+        #preloader { position:fixed;inset:0;z-index:99999;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.6s ease; }
+        #preloader.hide { opacity:0;pointer-events:none; }
+        .loader-ring { width:56px;height:56px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.9s linear infinite; }
+        .loader-label { font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:3px;animation:blink 1s step-end infinite; }
+        @keyframes spin  { to { transform:rotate(360deg); } }
+        @keyframes blink { 50% { opacity:0; } }
+
+        /* TOAST */
+        .toast { position:fixed;top:24px;right:24px;z-index:9997;background:var(--bg-card);border:1px solid var(--accent2);border-radius:10px;padding:14px 20px;max-width:320px;font-size:13px;color:var(--text-primary);box-shadow:var(--glow-red);animation:slideIn 0.3s ease;transition:opacity 0.5s; }
+        @keyframes slideIn { from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);} }
+
+        /* CARD */
+        .register-wrap {
+            position: relative; z-index: 2;
+            width: 100%; max-width: 560px;
+            animation: fadeup 0.7s ease both;
+        }
+        @keyframes fadeup { from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);} }
+
+        .register-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-bright);
+            border-radius: 20px;
+            padding: 44px 44px 36px;
+            box-shadow: var(--glow), 0 30px 80px rgba(0,0,0,0.6);
+            position: relative; overflow: hidden;
+        }
+        .register-card::before {
+            content:'';position:absolute;top:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,transparent,var(--accent3),transparent);
+        }
+        .register-card::after {
+            content:'';position:absolute;bottom:0;right:0;width:160px;height:160px;
+            background:radial-gradient(circle at bottom right,rgba(57,255,20,0.05),transparent 70%);
+            pointer-events:none;
+        }
+
+        /* BRAND */
+        .card-brand { display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:28px; }
+        .brand-icon { width:40px;height:40px;background:linear-gradient(135deg,var(--accent),#0070ff);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:var(--glow); }
+        .brand-name { font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;color:var(--accent);letter-spacing:1px;line-height:1.2; }
+        .brand-sub  { font-size:9px;color:var(--text-muted);letter-spacing:2px;font-family:'Share Tech Mono',monospace; }
+
+        .card-title { font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;color:var(--text-primary);text-align:center;margin-bottom:6px;letter-spacing:2px; }
+        .card-sub   { text-align:center;font-size:12px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;letter-spacing:1px;margin-bottom:28px; }
+
+        /* STEP INDICATOR */
+        .steps {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; margin-bottom: 32px;
+        }
+        .step-item {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            position: relative; flex: 1;
+        }
+        .step-circle {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700;
+            border: 1px solid var(--border); background: var(--bg-panel);
+            color: var(--text-dim); transition: all 0.3s; position: relative; z-index: 2;
+        }
+        .step-item.active .step-circle  { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.1); box-shadow: var(--glow); }
+        .step-item.done .step-circle    { border-color: var(--accent3); color: var(--accent3); background: rgba(57,255,20,0.1); }
+        .step-label { font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--text-dim); }
+        .step-item.active .step-label  { color: var(--accent); }
+        .step-item.done .step-label    { color: var(--accent3); }
+        .step-line { flex: 1; height: 1px; background: var(--border); margin: 0 -1px; position: relative; top: -14px; z-index: 1; }
+        .step-line.done { background: var(--accent3); }
+
+        /* SECTION LABEL */
+        .section-label {
+            font-family: 'Share Tech Mono', monospace; font-size: 10px;
+            letter-spacing: 2px; text-transform: uppercase; color: var(--accent);
+            margin-bottom: 16px; margin-top: 24px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+        /* FORM GRID */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-row.full { grid-template-columns: 1fr; }
+        .form-group { margin-bottom: 0; }
+
+        .form-label { display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);font-family:'Share Tech Mono',monospace;margin-bottom:7px; }
+
+        .form-input-wrap { position: relative; }
+        .form-icon { position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text-dim);pointer-events:none;transition:color 0.2s; }
+        .form-icon-top { top: 16px; transform: none; }
+
+        .form-control {
+            width:100%;padding:12px 12px 12px 40px;
+            background:var(--bg-panel);border:1px solid var(--border);
+            border-radius:10px;color:var(--text-primary);
+            font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:500;
+            transition:all 0.2s;outline:none;
+        }
+        .form-control::placeholder { color:var(--text-dim); }
+        .form-control:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1),var(--glow);background:#0a1928; }
+        .form-control:focus ~ .form-icon,
+        .form-input-wrap:focus-within .form-icon { color:var(--accent); }
+        textarea.form-control { padding-top:12px;padding-bottom:12px;resize:vertical;min-height:90px; }
+
+        /* FILE INPUT */
+        .file-input-wrap { position: relative; }
+        .file-input-wrap input[type="file"] {
+            width:100%;padding:10px 12px;
+            background:var(--bg-panel);border:1px dashed var(--border-bright);
+            border-radius:10px;color:var(--text-muted);
+            font-family:'Share Tech Mono',monospace;font-size:11px;
+            cursor:pointer;transition:all 0.2s;outline:none;
+        }
+        .file-input-wrap input[type="file"]:hover { border-color:var(--accent);background:#0a1928; }
+        .file-input-wrap input[type="file"]:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1); }
+
+        /* GENDER */
+        .gender-group { display:flex;gap:12px; }
+        .gender-option { flex:1; }
+        .gender-option input[type="radio"] { display:none; }
+        .gender-label {
+            display:flex;align-items:center;justify-content:center;gap:8px;
+            padding:11px 16px;border-radius:10px;cursor:pointer;
+            border:1px solid var(--border);background:var(--bg-panel);
+            font-size:14px;font-weight:600;color:var(--text-muted);
+            transition:all 0.2s;
+        }
+        .gender-option input[type="radio"]:checked + .gender-label {
+            border-color:var(--accent);color:var(--accent);
+            background:rgba(0,212,255,0.08);box-shadow:var(--glow);
+        }
+        .gender-label:hover { border-color:var(--border-bright);color:var(--text-primary); }
+
+        /* PASSWORD STRENGTH */
+        .pw-wrap { position:relative; }
+        .pw-toggle { position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--text-dim);transition:color 0.2s;padding:0; }
+        .pw-toggle:hover { color:var(--accent); }
+        .pw-strength { margin-top:8px;display:flex;gap:4px;align-items:center; }
+        .pw-bar { flex:1;height:3px;border-radius:2px;background:var(--border);transition:background 0.3s; }
+        .pw-bar.weak   { background:var(--accent2); }
+        .pw-bar.medium { background:#ff8c00; }
+        .pw-bar.strong { background:var(--accent3); }
+        .pw-hint { font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);margin-top:5px; }
+
+        /* SUBMIT */
+        .btn-submit {
+            width:100%;padding:14px;
+            background:var(--accent);color:#000;
+            border:none;border-radius:10px;cursor:pointer;
+            font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;
+            letter-spacing:2px;transition:all 0.25s;
+            box-shadow:var(--glow);margin-top:8px;
+            position:relative;overflow:hidden;
+        }
+        .btn-submit::before { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);transform:translateX(-100%);transition:transform 0.4s; }
+        .btn-submit:hover { background:#33ddff;transform:translateY(-2px);box-shadow:0 0 50px rgba(0,212,255,0.55),0 8px 24px rgba(0,0,0,0.3); }
+        .btn-submit:hover::before { transform:translateX(100%); }
+
+        /* FOOTER */
+        .card-footer-links { margin-top:22px;text-align:center;font-size:13px;color:var(--text-muted); }
+        .card-footer-links a { color:var(--accent);text-decoration:none;font-weight:600;transition:color 0.2s; }
+        .card-footer-links a:hover { color:#33ddff; }
+        .back-home { display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:8px 18px;border:1px solid var(--border);border-radius:8px;color:var(--text-muted);text-decoration:none;font-size:12px;font-family:'Share Tech Mono',monospace;letter-spacing:1px;transition:all 0.2s; }
+        .back-home:hover { border-color:var(--accent);color:var(--accent);box-shadow:var(--glow); }
+
+        /* SECURITY BADGE */
+        .security-badge { display:flex;align-items:center;justify-content:center;gap:6px;margin-top:18px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:1px; }
+        .sec-dot { width:6px;height:6px;border-radius:50%;background:var(--accent3);box-shadow:0 0 6px var(--accent3);animation:pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:.3;} }
+
+        /* DIVIDER */
+        .divider { height:1px;background:var(--border);margin-bottom:0;position:relative; }
+        .divider::after { content:'CREATE ACCOUNT';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-card);padding:0 12px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px; }
+
+        /* spacing helper */
+        .mt16 { margin-top: 16px; }
+
+        @media(max-width:520px) {
+            .register-card { padding:32px 22px 28px; }
+            .form-row { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- PRELOADER -->
+<div id="preloader">
+    <div class="loader-ring"></div>
+    <div class="loader-label">INITIALIZING...</div>
+</div>
+
+<!-- DJANGO MESSAGES -->
+{% if messages %}
+{% for message in messages %}
+<div class="toast">⚠ {{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<!-- REGISTER CARD -->
+<div class="register-wrap">
+    <div class="register-card">
+
+        <!-- Brand -->
+        <div class="card-brand">
+            <div class="brand-icon">🛡</div>
+            <div>
+                <div class="brand-name">PhishGuard</div>
+                <div class="brand-sub">DETECTION SYSTEM</div>
+            </div>
+        </div>
+
+        <h1 class="card-title">CREATE ACCOUNT</h1>
+        <p class="card-sub">FILL IN YOUR DETAILS TO GET STARTED</p>
+
+        <div class="divider" style="margin-bottom:28px;"></div>
+
+        <!-- Step indicator -->
+        <div class="steps">
+            <div class="step-item active">
+                <div class="step-circle">1</div>
+                <div class="step-label">PROFILE</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item">
+                <div class="step-circle">2</div>
+                <div class="step-label">DETAILS</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step-item">
+                <div class="step-circle">3</div>
+                <div class="step-label">SECURE</div>
+            </div>
+        </div>
+
+        <!-- FORM -->
+        <form method="post" enctype="multipart/form-data" id="regForm">
+            {% csrf_token %}
+
+            <!-- SECTION 1: Basic Info -->
+            <div class="section-label">Personal Info</div>
+            <div class="form-row mt16">
+                <div class="form-group">
+                    <label class="form-label" for="name">Full Name</label>
+                    <div class="form-input-wrap">
+                        <span class="form-icon">👤</span>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="John Doe" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <div class="form-input-wrap">
+                        <span class="form-icon">✉</span>
+                        <input type="email" id="email" name="email" class="form-control"
+                            placeholder="you@example.com"
+                            pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row mt16">
+                <div class="form-group">
+                    <label class="form-label" for="phone">Phone</label>
+                    <div class="form-input-wrap">
+                        <span class="form-icon">📱</span>
+                        <input type="text" id="phone" name="phone" class="form-control"
+                            placeholder="9876543210" pattern="[9876][0-9]+" maxlength="10" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="dob">Date of Birth</label>
+                    <div class="form-input-wrap">
+                        <span class="form-icon">📅</span>
+                        <input type="date" id="dob" name="dob" class="form-control"
+                            max="{{ current_date }}" required
+                            style="color-scheme:dark;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Additional -->
+            <div class="section-label" style="margin-top:24px;">Additional Details</div>
+
+            <div class="form-group mt16">
+                <label class="form-label">Gender</label>
+                <div class="gender-group">
+                    <div class="gender-option">
+                        <input type="radio" id="male" name="gender" value="Male" required>
+                        <label class="gender-label" for="male">♂ Male</label>
+                    </div>
+                    <div class="gender-option">
+                        <input type="radio" id="female" name="gender" value="Female">
+                        <label class="gender-label" for="female">♀ Female</label>
+                    </div>
+                    <div class="gender-option">
+                        <input type="radio" id="other" name="gender" value="Other">
+                        <label class="gender-label" for="other">⚧ Other</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mt16">
+                <label class="form-label" for="address">Address</label>
+                <div class="form-input-wrap">
+                    <span class="form-icon form-icon-top">📍</span>
+                    <textarea id="address" name="address" class="form-control"
+                        placeholder="Your full address..." rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="form-group mt16">
+                <label class="form-label" for="image">Profile Photo</label>
+                <div class="file-input-wrap">
+                    <input type="file" id="image" name="image" accept="image/*" required>
+                </div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:6px;">
+                    JPG, PNG or GIF · Max 5MB
+                </div>
+            </div>
+
+            <!-- SECTION 3: Security -->
+            <div class="section-label" style="margin-top:24px;">Security</div>
+
+            <div class="form-group mt16">
+                <label class="form-label" for="password">Password</label>
+                <div class="form-input-wrap pw-wrap">
+                    <span class="form-icon">🔒</span>
+                    <input type="password" id="password" name="password" class="form-control"
+                        placeholder="Min 8 chars, upper + lower + number"
+                        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                        title="Must contain at least one number, one uppercase and one lowercase letter, and at least 8 characters"
+                        required oninput="checkStrength(this.value)">
+                    <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePw()">👁</button>
+                </div>
+                <div class="pw-strength">
+                    <div class="pw-bar" id="bar1"></div>
+                    <div class="pw-bar" id="bar2"></div>
+                    <div class="pw-bar" id="bar3"></div>
+                    <div class="pw-bar" id="bar4"></div>
+                </div>
+                <div class="pw-hint" id="pwHint">MIN 8 CHARS · UPPERCASE · LOWERCASE · NUMBER</div>
+            </div>
+
+            <button type="submit" class="btn-submit">CREATE ACCOUNT →</button>
+        </form>
+
+        <div class="card-footer-links">
+            Already have an account? <a href="/login">Sign In</a>
+        </div>
+        <div style="text-align:center;margin-top:14px;">
+            <a href="/" class="back-home">← BACK TO HOME</a>
+        </div>
+        <div class="security-badge">
+            <div class="sec-dot"></div>
+            SECURED · ENCRYPTED · PROTECTED
+        </div>
+
+    </div>
+</div>
+
+<script>
+// PRELOADER
+window.addEventListener('load', function () {
+    setTimeout(function () {
+        document.getElementById('preloader').classList.add('hide');
+    }, 700);
+});
+
+// PASSWORD TOGGLE
+function togglePw() {
+    var inp = document.getElementById('password');
+    var btn = document.getElementById('pwToggle');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// PASSWORD STRENGTH
+function checkStrength(val) {
+    var bars  = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3'), document.getElementById('bar4')];
+    var hint  = document.getElementById('pwHint');
+    var score = 0;
+    if (val.length >= 8)           score++;
+    if (/[A-Z]/.test(val))         score++;
+    if (/[a-z]/.test(val))         score++;
+    if (/[0-9]/.test(val))         score++;
+
+    bars.forEach(function (b) { b.className = 'pw-bar'; });
+
+    var cls = '';
+    var msg = '';
+    if (score <= 1) { cls = 'weak';   msg = 'WEAK — ADD UPPERCASE, NUMBERS'; }
+    else if (score === 2) { cls = 'weak';   msg = 'FAIR — KEEP GOING'; }
+    else if (score === 3) { cls = 'medium'; msg = 'GOOD — ADD A NUMBER OR SYMBOL'; }
+    else                  { cls = 'strong'; msg = 'STRONG ✓'; }
+
+    for (var i = 0; i < score; i++) bars[i].classList.add(cls);
+    hint.textContent = msg;
+    hint.style.color = score === 4 ? 'var(--accent3)' : score >= 3 ? '#ff8c00' : 'var(--accent2)';
+}
+
+// STEP INDICATOR — light up as user fills fields
+(function () {
+    var step1fields = ['name','email'];
+    var step2fields = ['phone','dob','address'];
+    var step3fields = ['password'];
+    var steps = document.querySelectorAll('.step-item');
+    var lines  = document.querySelectorAll('.step-line');
+
+    function checkSteps() {
+        var s1done = step1fields.every(function(id){ var el=document.getElementById(id); return el && el.value.trim(); });
+        var s2done = step2fields.some(function(id){  var el=document.getElementById(id); return el && el.value.trim(); });
+        var s3done = step3fields.every(function(id){ var el=document.getElementById(id); return el && el.value.length>=8; });
+
+        if (s1done)  { steps[0].classList.add('done'); steps[0].classList.remove('active'); lines[0].classList.add('done'); steps[1].classList.add('active'); }
+        if (s2done && s1done) { steps[1].classList.add('done'); steps[1].classList.remove('active'); lines[1].classList.add('done'); steps[2].classList.add('active'); }
+        if (s3done)  { steps[2].classList.add('done'); steps[2].classList.remove('active'); }
+    }
+
+    document.getElementById('regForm').addEventListener('input', checkSteps);
+})();
+
+// AUTO-DISMISS TOASTS
+document.querySelectorAll('.toast').forEach(function(t) {
+    setTimeout(function(){ t.style.opacity='0'; }, 4000);
+    setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 4600);
+});
+</script>
+</body>
+</html>

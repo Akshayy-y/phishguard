@@ -1,0 +1,361 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard — Drafts</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:#050a0f; --bg-panel:#08111a; --bg-card:#0c1823; --bg-hover:#102030;
+            --border:#0f3a52; --border-bright:#1a6a8a;
+            --accent:#00d4ff; --accent2:#ff3860; --accent3:#39ff14; --accent4:#ff8c00;
+            --text-primary:#cde8f5; --text-muted:#4a7a99; --text-dim:#2a5a77;
+            --glow:0 0 24px rgba(0,212,255,0.35); --glow-red:0 0 24px rgba(255,56,96,0.3);
+            --sidebar-w:240px; --header-h:60px;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Rajdhani',sans-serif;background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);}
+
+        /* PRELOADER */
+        #preloader{position:fixed;inset:0;z-index:99999;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.6s ease;}
+        #preloader.hide{opacity:0;pointer-events:none;}
+        .loader-ring{width:56px;height:56px;border:2px solid var(--border);border-top-color:var(--accent4);border-radius:50%;animation:spin 0.9s linear infinite;}
+        .loader-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent4);letter-spacing:3px;animation:blink 1s step-end infinite;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        @keyframes blink{50%{opacity:0;}}
+
+        /* TOAST */
+        .toast{position:fixed;top:24px;right:24px;z-index:9997;background:var(--bg-card);border:1px solid var(--accent);border-radius:10px;padding:14px 20px;max-width:340px;font-size:13px;color:var(--text-primary);box-shadow:var(--glow);animation:slideIn 0.3s ease;transition:opacity 0.5s;}
+        @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+        /* LAYOUT */
+        #main-wrapper{display:flex;min-height:100vh;}
+
+        /* SIDEBAR */
+        .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--bg-panel);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;transition:transform 0.3s ease;}
+        .sidebar.collapsed{transform:translateX(calc(-1 * var(--sidebar-w)));}
+        .sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+        .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#0070ff);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:var(--glow);}
+        .logo-text{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;line-height:1.2;}
+        .logo-sub{font-size:9px;color:var(--text-muted);letter-spacing:2px;font-family:'Share Tech Mono',monospace;}
+        .nav-label{padding:20px 20px 8px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+        .nav-item{position:relative;}
+        .nav-link{display:flex;align-items:center;gap:12px;padding:11px 20px;color:var(--text-muted);font-size:14px;font-weight:500;transition:all 0.2s;cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+        .nav-link:hover,.nav-link.active{color:var(--accent);background:rgba(0,212,255,0.06);}
+        .nav-link:hover::before,.nav-link.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);box-shadow:var(--glow);}
+        .nav-icon{width:18px;text-align:center;font-size:16px;}
+        .nav-arrow{margin-left:auto;transition:transform 0.2s;font-size:10px;}
+        .nav-arrow.open{transform:rotate(90deg);}
+        .nav-sub{display:none;background:rgba(0,0,0,0.2);}
+        .nav-sub.open{display:block;}
+        .nav-sub a{display:flex;align-items:center;gap:10px;padding:9px 20px 9px 50px;color:var(--text-muted);text-decoration:none;font-size:13px;transition:all 0.2s;}
+        .nav-sub a::before{content:'›';color:var(--text-dim);}
+        .nav-sub a:hover{color:var(--accent);padding-left:54px;}
+        .sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);}
+        .sys-status{display:flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);}
+        .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent3);box-shadow:0 0 6px var(--accent3);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+        /* MAIN */
+        .main-content{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin-left 0.3s ease;}
+
+        /* HEADER */
+        .header{height:var(--header-h);background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50;}
+        .header-left{display:flex;align-items:center;gap:16px;}
+        .hamburger{width:32px;height:32px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid var(--border);border-radius:6px;transition:all 0.2s;}
+        .hamburger:hover{border-color:var(--accent);box-shadow:var(--glow);}
+        .hamburger span{width:14px;height:1.5px;background:var(--text-muted);}
+        .hamburger:hover span{background:var(--accent);}
+        .breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);}
+        .breadcrumb span{color:var(--accent4);font-family:'Share Tech Mono',monospace;}
+        .header-right{display:flex;align-items:center;gap:10px;}
+        .inbox-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);text-decoration:none;font-size:12px;font-family:'Share Tech Mono',monospace;letter-spacing:1px;transition:all 0.2s;}
+        .inbox-btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:var(--glow);}
+        .dropdown{position:relative;}
+        .user-pill{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 12px 4px 4px;border-radius:40px;border:1px solid var(--border);transition:all 0.2s;background:var(--bg-card);}
+        .user-pill:hover{border-color:var(--accent);box-shadow:var(--glow);}
+        .user-photo{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--border-bright);}
+        .user-photo-fallback{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#0070ff);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#000;font-family:'Orbitron',sans-serif;}
+        .user-info-name{font-size:13px;font-weight:600;color:var(--text-primary);}
+        .user-info-role{font-size:9px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;}
+        .dropdown-menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--bg-card);border:1px solid var(--border-bright);border-radius:12px;min-width:180px;box-shadow:0 20px 60px rgba(0,0,0,0.6),var(--glow);opacity:0;pointer-events:none;transform:translateY(-8px);transition:all 0.2s;z-index:200;padding:6px;}
+        .dropdown.open .dropdown-menu{opacity:1;pointer-events:all;transform:translateY(0);}
+        .dd-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;transition:background 0.2s;text-decoration:none;color:var(--text-muted);font-size:13px;font-weight:500;}
+        .dd-item:hover{background:var(--bg-hover);color:var(--accent);}
+        .dd-divider{height:1px;background:var(--border);margin:4px 0;}
+
+        /* PAGE */
+        .page-body{flex:1;padding:28px;background:radial-gradient(ellipse at 70% 20%,rgba(255,140,0,0.04) 0%,transparent 50%),radial-gradient(ellipse at 20% 80%,rgba(0,212,255,0.03) 0%,transparent 50%),var(--bg-deep);}
+        .page-title{margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;}
+        .page-title h1{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:2px;}
+        .page-title h1 span{color:var(--accent4);}
+        .page-title-sub{font-size:11px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;margin-top:4px;}
+        .live-time{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);}
+
+        /* CONTENT GRID */
+        .content-grid{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start;}
+
+        /* EMAIL NAV */
+        .email-nav{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:sticky;top:88px;}
+        .email-nav-compose{display:block;margin:16px;padding:11px;text-align:center;background:var(--accent);color:#000;border-radius:10px;text-decoration:none;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;transition:all 0.2s;box-shadow:var(--glow);}
+        .email-nav-compose:hover{background:#33ddff;transform:translateY(-2px);box-shadow:0 0 40px rgba(0,212,255,0.5);}
+        .email-nav-list{padding:8px 0 16px;}
+        .email-nav-item{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;text-decoration:none;color:var(--text-muted);font-size:13px;font-weight:500;transition:all 0.2s;border-left:2px solid transparent;}
+        .email-nav-item:hover{color:var(--accent);background:rgba(0,212,255,0.05);border-left-color:var(--accent);}
+        .email-nav-item.active{color:var(--accent4);background:rgba(255,140,0,0.07);border-left-color:var(--accent4);}
+        .email-nav-left{display:flex;align-items:center;gap:10px;}
+        .nav-badge{background:var(--accent);color:#000;border-radius:10px;padding:2px 7px;font-size:10px;font-family:'Share Tech Mono',monospace;font-weight:700;}
+        .draft-badge{background:var(--accent4);color:#000;border-radius:10px;padding:2px 7px;font-size:10px;font-family:'Share Tech Mono',monospace;font-weight:700;}
+
+        /* DRAFTS PANEL */
+        .drafts-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:relative;}
+        .drafts-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent4),transparent);}
+        .panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+        .panel-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--text-primary);display:flex;align-items:center;gap:8px;}
+        .ptdot-orange{width:6px;height:6px;border-radius:50%;background:var(--accent4);box-shadow:0 0 8px rgba(255,140,0,0.5);}
+        .panel-count{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted);padding:4px 10px;border:1px solid var(--border);border-radius:20px;}
+
+        /* DRAFT LIST */
+        .draft-list{padding:8px 0;}
+        .draft-item{display:flex;align-items:center;gap:0;border-bottom:1px solid rgba(15,58,82,0.4);transition:background 0.2s;animation:rowfade 0.4s ease both;}
+        .draft-item:last-child{border-bottom:none;}
+        .draft-item:hover{background:var(--bg-hover);}
+        @keyframes rowfade{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+
+        .draft-link{display:flex;align-items:center;gap:16px;padding:16px 20px;text-decoration:none;flex:1;min-width:0;}
+        .draft-icon-wrap{width:36px;height:36px;border-radius:10px;background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all 0.2s;}
+        .draft-item:hover .draft-icon-wrap{background:rgba(255,140,0,0.15);border-color:var(--accent4);}
+        .draft-info{flex:1;min-width:0;}
+        .draft-subject{font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color 0.2s;display:flex;align-items:center;gap:8px;}
+        .draft-item:hover .draft-subject{color:var(--accent4);}
+        .draft-sub-row{display:flex;align-items:center;gap:12px;margin-top:4px;}
+        .draft-to{font-size:12px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+        .draft-time{font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;white-space:nowrap;flex-shrink:0;}
+        .draft-status{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:10px;font-family:'Share Tech Mono',monospace;background:rgba(255,140,0,0.1);color:var(--accent4);border:1px solid rgba(255,140,0,0.2);}
+        .draft-arrow{color:var(--text-dim);font-size:16px;padding:0 20px 0 8px;flex-shrink:0;transition:all 0.2s;}
+        .draft-item:hover .draft-arrow{color:var(--accent4);transform:translateX(4px);}
+
+        /* EMPTY STATE */
+        .empty-state{text-align:center;padding:80px 20px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;line-height:2.2;}
+        .empty-icon{font-size:52px;opacity:0.2;display:block;margin-bottom:16px;}
+        .empty-title{font-size:14px;color:var(--text-muted);margin-bottom:6px;font-family:'Orbitron',monospace;letter-spacing:2px;}
+        .empty-action{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:10px 22px;border-radius:10px;background:var(--accent);color:#000;text-decoration:none;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;transition:all 0.2s;box-shadow:var(--glow);}
+        .empty-action:hover{background:#33ddff;transform:translateY(-2px);}
+
+        /* FOOTER */
+        .footer{padding:14px 28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+
+        @media(max-width:900px){.content-grid{grid-template-columns:1fr;}.email-nav{position:static;}}
+        @media(max-width:640px){.sidebar{transform:translateX(calc(-1 * var(--sidebar-w)));}.sidebar.mobile-open{transform:none;}.main-content{margin-left:0!important;}.page-body{padding:16px;}}
+    </style>
+</head>
+<body>
+
+<div id="preloader">
+    <div class="loader-ring"></div>
+    <div class="loader-label">LOADING DRAFTS...</div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="toast">✓ {{ message }}</div>
+{% endfor %}
+{% endif %}
+
+<div id="main-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">🛡</div>
+            <div>
+                <div class="logo-text">PhishGuard</div>
+                <div class="logo-sub">USER PORTAL</div>
+            </div>
+        </div>
+        <div class="nav-label">Dashboard</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚡</span> Dashboard <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub"><a href="/userHome">🏠 Home</a></div>
+            </div>
+        </nav>
+        <div class="nav-label">Email</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link active" onclick="toggleNav(this)">
+                    <span class="nav-icon">✉</span> Email <span class="nav-arrow open">›</span>
+                </button>
+                <div class="nav-sub open">
+                    <a href="/inbox">📥 Inbox</a>
+                    <a href="/drafts" style="color:var(--accent4);">📝 Drafts</a>
+                    <a href="/compose">✏ Compose</a>
+                    <a href="/outBox">📤 Outbox</a>
+                </div>
+            </div>
+        </nav>
+        <div class="nav-label">More</div>
+        <nav>
+            <div class="nav-item">
+                <button class="nav-link" onclick="toggleNav(this)">
+                    <span class="nav-icon">⚙</span> Settings <span class="nav-arrow">›</span>
+                </button>
+                <div class="nav-sub">
+                    <a href="/viewProfile">👤 Profile</a>
+                    <a href="/addFeedback">💬 Feedback</a>
+                    <a href="/blockedUsers">🚫 Blocked Users</a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="sys-status"><div class="status-dot"></div><span>PROTECTION ACTIVE</span></div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main-content" id="mainContent">
+
+        <header class="header">
+            <div class="header-left">
+                <div class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+                <div class="breadcrumb">
+                    <span>PhishGuard</span> › Email › <span>Drafts</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <a href="/inbox" class="inbox-btn">📥 INBOX</a>
+                <div class="dropdown" id="ddUser">
+                    <div class="user-pill" onclick="toggleDD('ddUser')">
+                        <img src="/static/media/{{ image }}" class="user-photo" alt="profile"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                        <div class="user-photo-fallback" style="display:none;">U</div>
+                        <div>
+                            <div class="user-info-name">My Account</div>
+                            <div class="user-info-role">USER</div>
+                        </div>
+                        <span style="color:var(--text-dim);font-size:10px;margin-left:2px;">▾</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="/viewProfile" class="dd-item"><span>👤</span> Profile</a>
+                        <a href="/inbox"       class="dd-item"><span>📥</span> Inbox</a>
+                        <div class="dd-divider"></div>
+                        <a href="/login" class="dd-item" style="color:var(--accent2);"><span>🔑</span> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-body">
+
+            <div class="page-title">
+                <div>
+                    <h1>MY <span>DRAFTS</span></h1>
+                    <div class="page-title-sub">USER PORTAL / EMAIL / DRAFTS</div>
+                </div>
+                <div class="live-time" id="liveTime"></div>
+            </div>
+
+            <div class="content-grid">
+
+                <!-- LEFT: Email Nav -->
+                <div>
+                    <div class="email-nav">
+                        <a href="/compose" class="email-nav-compose">✏ COMPOSE</a>
+                        <div class="email-nav-list">
+                            <a href="/inbox" class="email-nav-item">
+                                <div class="email-nav-left"><span>📥</span> Inbox</div>
+                                <span class="nav-badge">{{ count|default:0 }}</span>
+                            </a>
+                            <a href="/outBox"  class="email-nav-item"><div class="email-nav-left"><span>📤</span> Sent</div></a>
+                            <a href="/drafts"  class="email-nav-item active">
+                                <div class="email-nav-left"><span>📝</span> Drafts</div>
+                                {% if draftData %}<span class="draft-badge">{{ draftData|length }}</span>{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Drafts List -->
+                <div class="drafts-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <div class="ptdot-orange"></div> SAVED DRAFTS
+                        </div>
+                        <div class="panel-count">
+                            {% if draftData %}{{ draftData|length }} DRAFT{{ draftData|length|pluralize }}{% else %}0 DRAFTS{% endif %}
+                        </div>
+                    </div>
+
+                    {% if draftData %}
+                    <div class="draft-list">
+                        {% for i in draftData %}
+                        <div class="draft-item" style="animation-delay:{{ forloop.counter0 }}00ms;">
+                            <a href="/readDraft?id={{ i.id }}" class="draft-link">
+                                <div class="draft-icon-wrap">📝</div>
+                                <div class="draft-info">
+                                    <div class="draft-subject">
+                                        {{ i.subject }}
+                                        <span class="draft-status">📝 DRAFT</span>
+                                    </div>
+                                    <div class="draft-sub-row">
+                                        <span class="draft-to">To: {{ i.sendto }}</span>
+                                        <span class="draft-time">{{ i.time }} · {{ i.date }}</span>
+                                    </div>
+                                </div>
+                            </a>
+                            <span class="draft-arrow">›</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% else %}
+                    <div class="empty-state">
+                        <span class="empty-icon">📝</span>
+                        <div class="empty-title">NO DRAFTS</div>
+                        YOU HAVE NO SAVED DRAFTS<br>
+                        <span style="font-size:10px;">Start composing and save as draft to see them here</span>
+                        <div><a href="/compose" class="empty-action">✏ COMPOSE EMAIL</a></div>
+                    </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div><!-- /page-body -->
+
+        <footer class="footer">
+            <span>© 2026 PHISHING EMAIL DETECTION SYSTEM</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <div class="status-dot"></div><span>PROTECTION ACTIVE</span>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load',function(){setTimeout(function(){document.getElementById('preloader').classList.add('hide');},600);});
+
+function tick(){var e=document.getElementById('liveTime');if(e)e.textContent=new Date().toLocaleTimeString('en-US',{hour12:false})+' UTC';}
+tick();setInterval(tick,1000);
+
+var sidebarOpen=true;
+function toggleSidebar(){var s=document.getElementById('sidebar');var m=document.getElementById('mainContent');sidebarOpen=!sidebarOpen;if(window.innerWidth<=640){s.classList.toggle('mobile-open',sidebarOpen);}else{s.classList.toggle('collapsed',!sidebarOpen);m.style.marginLeft=sidebarOpen?'':'0';}}
+
+function toggleNav(btn){var sub=btn.nextElementSibling;var arrow=btn.querySelector('.nav-arrow');var isOpen=sub.classList.contains('open');document.querySelectorAll('.nav-sub.open').forEach(function(s){s.classList.remove('open');var p=s.previousElementSibling;if(p){var a=p.querySelector('.nav-arrow');if(a)a.classList.remove('open');p.classList.remove('active');}});if(!isOpen){sub.classList.add('open');if(arrow)arrow.classList.add('open');btn.classList.add('active');}else{btn.classList.remove('active');}}
+
+function toggleDD(id){var el=document.getElementById(id);var was=el.classList.contains('open');document.querySelectorAll('.dropdown.open').forEach(function(d){d.classList.remove('open');});if(!was)el.classList.add('open');}
+document.addEventListener('click',function(e){if(!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown.open').forEach(function(d){d.classList.remove('open');});});
+
+document.querySelectorAll('.toast').forEach(function(t){
+    setTimeout(function(){t.style.opacity='0';},4000);
+    setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},4600);
+});
+</script>
+</body>
+</html>

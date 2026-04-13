@@ -1,0 +1,370 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PhishGuard — Sign In</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon.png' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:    #050a0f;
+            --bg-panel:   #08111a;
+            --bg-card:    #0c1823;
+            --border:     #0f3a52;
+            --border-bright: #1a6a8a;
+            --accent:     #00d4ff;
+            --accent2:    #ff3860;
+            --accent3:    #39ff14;
+            --text-primary: #cde8f5;
+            --text-muted: #4a7a99;
+            --text-dim:   #2a5a77;
+            --glow:       0 0 30px rgba(0,212,255,0.35);
+            --glow-red:   0 0 30px rgba(255,56,96,0.3);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+
+        /* scanlines */
+        body::before {
+            content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+        }
+
+        /* animated grid */
+        .bg-grid {
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.035) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridshift 25s linear infinite;
+        }
+        @keyframes gridshift { to { background-position: 60px 60px; } }
+
+        /* orbs */
+        .orb { position: fixed; border-radius: 50%; pointer-events: none; filter: blur(90px); z-index: 0; }
+        .orb-1 { width: 500px; height: 500px; background: rgba(0,212,255,0.06); top: -150px; left: -150px; animation: orbf 14s ease-in-out infinite; }
+        .orb-2 { width: 400px; height: 400px; background: rgba(255,56,96,0.05); bottom: -100px; right: -100px; animation: orbf 18s ease-in-out infinite reverse; }
+        @keyframes orbf { 0%,100% { transform: translate(0,0); } 50% { transform: translate(40px,-40px); } }
+
+        /* PRELOADER */
+        #preloader {
+            position: fixed; inset: 0; z-index: 99999;
+            background: var(--bg-deep);
+            display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+            transition: opacity 0.6s ease;
+        }
+        #preloader.hide { opacity: 0; pointer-events: none; }
+        .loader-ring { width: 56px; height: 56px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; }
+        .loader-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 3px; animation: blink 1s step-end infinite; }
+        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* TOAST */
+        .toast {
+            position: fixed; top: 24px; right: 24px; z-index: 9997;
+            background: var(--bg-card); border: 1px solid var(--accent2);
+            border-radius: 10px; padding: 14px 20px; max-width: 320px;
+            font-size: 13px; color: var(--text-primary);
+            box-shadow: var(--glow-red);
+            animation: slideIn 0.3s ease;
+            transition: opacity 0.5s;
+        }
+        @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+        /* CARD */
+        .login-wrap {
+            position: relative; z-index: 2;
+            width: 100%; max-width: 440px;
+            padding: 20px;
+            animation: fadeup 0.7s ease both;
+        }
+        @keyframes fadeup { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-bright);
+            border-radius: 20px;
+            padding: 44px 40px 36px;
+            box-shadow: var(--glow), 0 30px 80px rgba(0,0,0,0.6);
+            position: relative; overflow: hidden;
+        }
+        /* top accent line */
+        .login-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        /* corner decoration */
+        .login-card::after {
+            content: ''; position: absolute; bottom: 0; right: 0;
+            width: 120px; height: 120px;
+            background: radial-gradient(circle at bottom right, rgba(0,212,255,0.06), transparent 70%);
+            pointer-events: none;
+        }
+
+        /* BRAND */
+        .card-brand {
+            display: flex; align-items: center; gap: 12px;
+            justify-content: center; margin-bottom: 32px;
+        }
+        .brand-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent), #0070ff);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; box-shadow: var(--glow);
+        }
+        .brand-name { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 1px; line-height: 1.2; }
+        .brand-sub  { font-size: 9px; color: var(--text-muted); letter-spacing: 2px; font-family: 'Share Tech Mono', monospace; }
+
+        /* TITLE */
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px; font-weight: 900;
+            color: var(--text-primary); text-align: center;
+            margin-bottom: 6px; letter-spacing: 2px;
+        }
+        .card-sub {
+            text-align: center; font-size: 13px; color: var(--text-muted);
+            font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+            margin-bottom: 32px;
+        }
+
+        /* DIVIDER */
+        .divider {
+            height: 1px; background: var(--border);
+            margin-bottom: 28px; position: relative;
+        }
+        .divider::after {
+            content: 'SECURE LOGIN';
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: var(--bg-card); padding: 0 12px;
+            font-family: 'Share Tech Mono', monospace; font-size: 9px;
+            color: var(--text-dim); letter-spacing: 2px;
+        }
+
+        /* FORM */
+        .form-group { margin-bottom: 18px; }
+        .form-label {
+            display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+            color: var(--text-muted); font-family: 'Share Tech Mono', monospace;
+            margin-bottom: 8px;
+        }
+        .form-input-wrap { position: relative; }
+        .form-icon {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            font-size: 15px; color: var(--text-dim); pointer-events: none;
+            transition: color 0.2s;
+        }
+        .form-control {
+            width: 100%; padding: 13px 14px 13px 42px;
+            background: var(--bg-panel); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 500;
+            transition: all 0.2s; outline: none;
+        }
+        .form-control::placeholder { color: var(--text-dim); }
+        .form-control:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0,212,255,0.12), var(--glow);
+            background: #0a1928;
+        }
+        .form-control:focus + .form-icon,
+        .form-input-wrap:focus-within .form-icon { color: var(--accent); }
+
+        /* PASSWORD TOGGLE */
+        .pw-toggle {
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer; font-size: 16px;
+            color: var(--text-dim); transition: color 0.2s; padding: 0;
+        }
+        .pw-toggle:hover { color: var(--accent); }
+
+        /* SUBMIT */
+        .btn-submit {
+            width: 100%; padding: 14px;
+            background: var(--accent); color: #000;
+            border: none; border-radius: 10px; cursor: pointer;
+            font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+            letter-spacing: 2px; transition: all 0.25s;
+            box-shadow: var(--glow);
+            margin-top: 8px;
+            position: relative; overflow: hidden;
+        }
+        .btn-submit::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: translateX(-100%); transition: transform 0.4s;
+        }
+        .btn-submit:hover { background: #33ddff; transform: translateY(-2px); box-shadow: 0 0 50px rgba(0,212,255,0.55), 0 8px 24px rgba(0,0,0,0.3); }
+        .btn-submit:hover::before { transform: translateX(100%); }
+        .btn-submit:active { transform: translateY(0); }
+
+        /* FOOTER LINKS */
+        .card-footer-links {
+            margin-top: 24px; text-align: center;
+            font-size: 13px; color: var(--text-muted);
+        }
+        .card-footer-links a {
+            color: var(--accent); text-decoration: none; font-weight: 600;
+            transition: color 0.2s;
+        }
+        .card-footer-links a:hover { color: #33ddff; }
+
+        .back-home {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 16px; padding: 8px 18px;
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text-muted); text-decoration: none; font-size: 12px;
+            font-family: 'Share Tech Mono', monospace; letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .back-home:hover { border-color: var(--accent); color: var(--accent); box-shadow: var(--glow); }
+
+        /* SECURITY BADGE */
+        .security-badge {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            margin-top: 20px;
+            font-family: 'Share Tech Mono', monospace; font-size: 10px;
+            color: var(--text-dim); letter-spacing: 1px;
+        }
+        .sec-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); box-shadow: 0 0 6px var(--accent3); animation: pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:.3;} }
+    </style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- Preloader -->
+<div id="preloader">
+    <div class="loader-ring"></div>
+    <div class="loader-label">AUTHENTICATING...</div>
+</div>
+
+<!-- Django messages as toasts -->
+{% if messages %}
+{% for message in messages %}
+<div class="toast" id="toast-{{ forloop.counter }}">
+    ⚠ {{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- LOGIN CARD -->
+<div class="login-wrap">
+    <div class="login-card">
+
+        <!-- Brand -->
+        <div class="card-brand">
+            <div class="brand-icon">🛡</div>
+            <div>
+                <div class="brand-name">PhishGuard</div>
+                <div class="brand-sub">DETECTION SYSTEM</div>
+            </div>
+        </div>
+
+        <h1 class="card-title">SIGN IN</h1>
+        <p class="card-sub">ENTER YOUR CREDENTIALS TO CONTINUE</p>
+
+        <div class="divider"></div>
+
+        <!-- Form -->
+        <form method="post" autocomplete="off">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <div class="form-input-wrap">
+                    <span class="form-icon">✉</span>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="form-control"
+                        placeholder="you@example.com"
+                        pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$"
+                        required
+                        autofocus
+                    >
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <div class="form-input-wrap">
+                    <span class="form-icon">🔒</span>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="form-control"
+                        placeholder="••••••••"
+                        required
+                    >
+                    <button type="button" class="pw-toggle" onclick="togglePw()" id="pwToggle" title="Show/hide password">👁</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">SIGN IN →</button>
+        </form>
+
+        <!-- Footer -->
+        <div class="card-footer-links">
+            Don't have an account? <a href="/register">Sign Up</a>
+        </div>
+
+        <div style="text-align:center;margin-top:14px;">
+            <a href="/" class="back-home">← BACK TO HOME</a>
+        </div>
+
+        <div class="security-badge">
+            <div class="sec-dot"></div>
+            SECURED · ENCRYPTED · PROTECTED
+        </div>
+
+    </div>
+</div>
+
+<script>
+// PRELOADER
+window.addEventListener('load', function () {
+    setTimeout(function () {
+        document.getElementById('preloader').classList.add('hide');
+    }, 700);
+});
+
+// PASSWORD TOGGLE
+function togglePw() {
+    var inp = document.getElementById('password');
+    var btn = document.getElementById('pwToggle');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = '🙈';
+    } else {
+        inp.type = 'password';
+        btn.textContent = '👁';
+    }
+}
+
+// AUTO-DISMISS TOASTS
+document.querySelectorAll('.toast').forEach(function (t) {
+    setTimeout(function () { t.style.opacity = '0'; }, 4000);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 4600);
+});
+</script>
+
+</body>
+</html>
