@@ -1,0 +1,16 @@
+Here's the full project report as a Word document. It covers all 12 sections:
+
+1. **Project Overview** — capabilities summary
+2. **System Architecture** — tech stack table, file structure, URL routing table
+3. **Database Models** — all 6 models with field details and code snippets
+4. **Machine Learning Pipeline** — dataset, preprocessing steps, models compared, the Logistic Regression vs Naive Bayes clarification, VADER sentiment explanation
+5. **User Features** — auth, full email workflow, profile management, feedback
+6. **Admin Panel** — dashboard stats, user management, feedback review, block list
+7. **Frontend Design System** — color tokens, typography, full page inventory (18 pages), shared components
+8. **Security** — what's implemented + known risks with recommendations
+9. **Installation & Setup** — step-by-step clone, install, migrate, run, create admin
+10. **Known Issues & Future Improvements** — honest assessment of limitations
+11. **Project File Structure** — directory tree
+12. **Acknowledgements** — dataset, libraries, fonts
+
+It also includes a **Table of Contents**, styled headers with cyan/navy color scheme, page numbers in the footer, and a branded cover page.
